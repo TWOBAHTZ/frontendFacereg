@@ -1,56 +1,50 @@
 import React from 'react';
-import { User, Lock } from 'lucide-react';
 import styles from './login.module.css';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const LoginPage = () => {
   return (
     <div className={styles.container}>
       <div className={styles.loginBox}>
         
-        {/* --- Logo and Title --- */}
+        {/* --- Header Section (Logo & Title) --- */}
         <div className={styles.header}>
-          <div className={styles.logo}>
-            <span>FR</span>
+          <div className={styles.logoWrapper}>
+            {/* โลโก้ Microsoft (รูปยาว) */}
+            <Image 
+              src="/Microsoft_logo.png" // ⚠️ ตรวจสอบ path รูปภาพให้ถูกต้อง
+              alt="Microsoft Logo" 
+              width={200}
+              height={50}
+              className={styles.headerLogo}
+              priority 
+            />
           </div>
-          <h2>Welcome Back!</h2>
-          <p>Please sign in to access your account.</p>
+          <h2>Sign In</h2>
+          <p>Use your Microsoft account to continue.</p>
         </div>
 
-        {/* --- Form --- */}
-        <form className={styles.form}>
-          <div className={styles.inputGroup}>
-            <User size={20} className={styles.icon} />
-            <input type="email" placeholder="Email" required />
-          </div>
-          <div className={styles.inputGroup}>
-            <Lock size={20} className={styles.icon} />
-            <input type="password" placeholder="Password" required />
-          </div>
-
-          <div className={styles.actions}>
-            <label className={styles.rememberMe}>
-              <input type="checkbox" />
-              Remember me
-            </label>
-            <Link href="/forgot-password" className={styles.link}>
-              Forgot Password?
-            </Link>
-          </div>
-
-          <button type="submit" className={styles.loginButton}>
-            <Link href="/accesscontrol" className={styles.loginLink}>
-              submit
-            </Link>
+        {/* --- Sign-in Button Section --- */}
+        <div className={styles.signInWrapper}>
+          <button className={styles.microsoftButton}>
+            {/* ไอคอน Microsoft ในปุ่ม (มักเป็นสี่เหลี่ยม 4 สี) */}
+            <Image 
+              src="/microsoft-logo.png" // ⚠️ ตรวจสอบ path รูปภาพให้ถูกต้อง
+              alt="Microsoft Icon" 
+              width={22} 
+              height={22} 
+            />
+            <span>Sign in with Microsoft</span>
           </button>
-        </form>
+        </div>
 
-        {/* --- Footer Link --- */}
+        {/* --- Footer Section --- */}
         <div className={styles.footer}>
           <p>
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className={styles.link}>
-              Sign Up
+            Having trouble?{' '}
+            <Link href="/support" className={styles.link}>
+              Contact Support
             </Link>
           </p>
         </div>

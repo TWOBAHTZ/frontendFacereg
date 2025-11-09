@@ -1,154 +1,114 @@
-/* --- CSS Variables for easy themeing --- */
+/* --- CSS Variables for consistent theming --- */
 :root {
-    --bg-color: #f8fafc; /* bg-slate-50 */
-    --card-color: #ffffff;
-    --primary-color: #3b82f6; /* blue-500 */
-    --primary-hover-color: #2563eb; /* blue-600 */
-    --text-primary: #1e293b; /* slate-800 */
-    --text-secondary: #64748b; /* slate-500 */
-    --input-bg-color: #f1f5f9; /* slate-100 */
+  --bg-color: #f8fafc;        /* สีพื้นหลังหลัก (เทาอ่อนมาก) */
+  --card-color: #ffffff;      /* สีพื้นหลังการ์ด (ขาว) */
+  --primary-color: #3b82f6;   /* สีหลัก (ฟ้า) */
+  --text-primary: #1e293b;    /* สีข้อความหลัก (เทาเข้ม) */
+  --text-secondary: #64748b;  /* สีข้อความรอง (เทากลาง) */
+  --input-bg-color: #f1f5f9;  /* สีพื้นหลังปุ่มเมื่อ hover (เทาอ่อน) */
+  --border-color: #d1d5db;    /* สีเส้นขอบ (เทา) */
 }
 
 .container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    background-color: var(--bg-color);
-    padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  padding: 1rem;
 }
 
 .loginBox {
-    width: 100%;
-    max-width: 420px;
-    background-color: var(--card-color);
-    padding: 3rem;
-    border-radius: 1rem; /* rounded-xl */
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  width: 100%;
+  max-width: 420px;
+  background-color: var(--card-color);
+  padding: 3rem 2.5rem; /* ปรับ padding ให้น้อยลงเล็กน้อยด้านข้าง */
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05); /* เงาที่นุ่มนวลขึ้น */
 }
 
 /* --- Header Section --- */
 .header {
-    text-align: center;
-    margin-bottom: 2rem;
+  text-align: center;
+  margin-bottom: 2.5rem;
 }
 
-.logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 50px;
-    height: 50px;
-    background-color: var(--primary-color);
-    color: white;
-    font-size: 1.25rem;
-    font-weight: 700;
-    border-radius: 50%;
-    margin-bottom: 1rem;
+.logoWrapper {
+  margin-bottom: 1.5rem;
+  /* ใช้ text-align: center ของ .header จัดกึ่งกลาง */
+}
+
+.headerLogo {
+  width: auto;      
+  height: auto;     
+  max-width: 80%;   
+  max-height: 60px; 
+  object-fit: contain;
+  margin: 0 auto;   /* ช่วยจัดกึ่งกลางเพิ่มเติม */
+  display: block;   /* ทำให้ margin: auto ทำงานได้ดีขึ้น */
 }
 
 .header h2 {
-    font-size: 1.875rem; /* text-3xl */
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
+  font-size: 1.5rem; /* ลดขนาดลงตามต้องการ (เดิม 1.875rem) */
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
 }
 
 .header p {
-    color: var(--text-secondary);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
-/* --- Form Section --- */
-.form {
-    display: flex;
-    flex-direction: column;
+/* --- Sign-in Button Section --- */
+.signInWrapper {
+  margin-top: 1.5rem;
 }
 
-.inputGroup {
-    display: flex;
-    align-items: center;
-    background-color: var(--input-bg-color);
-    border-radius: 0.5rem; /* rounded-lg */
-    margin-bottom: 1rem;
-    padding: 0 0.75rem;
-    border: 2px solid transparent;
-    transition: border-color 0.2s;
+.microsoftButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background-color: var(--card-color);
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  gap: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
-.inputGroup:focus-within {
-    border-color: var(--primary-color);
+.microsoftButton:hover {
+  background-color: var(--input-bg-color);
+  border-color: #9ca3af; /* สีขอบเข้มขึ้นเล็กน้อยเมื่อ hover */
 }
 
-.inputGroup input {
-    width: 100%;
-    border: none;
-    background: transparent;
-    padding: 0.9rem 0.75rem;
-    font-size: 1rem;
-    color: var(--text-primary);
+.microsoftButton:active {
+  background-color: #e2e8f0; /* สีเข้มขึ้นอีกเมื่อคลิก */
+  transform: scale(0.99);    /* ย่อขนาดเล็กน้อยเมื่อคลิก */
 }
 
-.inputGroup input:focus {
-    outline: none;
-}
-
-.icon {
-    color: var(--text-secondary);
-}
-
-/* --- Actions (Remember me / Forgot) --- */
-.actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    font-size: 0.875rem; /* text-sm */
-}
-
-.rememberMe {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--text-secondary);
-    cursor: pointer;
+/* --- Footer Section --- */
+.footer {
+  margin-top: 2.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
 }
 
 .link {
-    color: var(--primary-color);
-    font-weight: 500;
-    text-decoration: none;
+  color: var(--primary-color);
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
 }
 
 .link:hover {
-    text-decoration: underline;
-}
-
-/* --- Button --- */
-.loginButton {
-    padding: 0.9rem;
-    border: none;
-    border-radius: 0.5rem;
-    background-color: var(--primary-color);
-    color: white;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.loginLink {
-    color: white;
-    text-decoration: none;
-}
-
-.loginButton:hover {
-    background-color: var(--primary-hover-color);
-}
-
-/* --- Footer --- */
-.footer {
-    margin-top: 2rem;
-    text-align: center;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
+  text-decoration: underline;
+  color: #2563eb; /* สีเข้มขึ้นเมื่อ hover ลิงก์ */
 }
