@@ -1,6 +1,6 @@
 'use client';
 
-// ✨ import FormEvent มาแล้ว
+// ✨ (Imports)
 import React, { useEffect, useRef, useState, useCallback, FormEvent } from 'react';
 import { Settings, Download, X, VideoOff, Plus, Loader2, Save } from 'lucide-react';
 import styles from './accesscontrol.module.css';
@@ -287,7 +287,7 @@ interface LogEntry {
   action: "enter" | "exit"; 
   timestamp: string; 
   confidence: number | null; 
-  subject_id: number | null; // ตรวจสอบว่ามี field นี้
+  subject_id: number | null;
 }
 interface Subject {
   subject_id: number;
@@ -317,34 +317,23 @@ const AccessControlPage = () => {
 
   const formatDateForAPI = (date: Date): string => { return date.toISOString().split('T')[0]; };
 
-  // ✨ [แก้ไข] ฟังก์ชันดึงรายชื่อวิชา
   const fetchSubjects = useCallback(async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/subjects`);
       if (!response.ok) throw new Error("Failed to fetch subjects");
       const data: Subject[] = await response.json();
       setSubjects(data);
-      
-      // ❗️ [แก้ไข] ลบส่วนที่บังคับเลือกวิชาแรกออก
-      // if (data.length > 0 && selectedSubjectId === '') {
-      //     setSelectedSubjectId(data[0].subject_id.toString());
-      // }
     } catch (err) {
       console.error("Failed to fetch subjects:", err);
     }
-  }, []); // 👈 [แก้ไข] ลบ dependency ออก (ฟังก์ชันนี้คงที่)
+  }, []); 
 
-  // ✨ อัปเดต fetchInitialLogs ให้กรองตาม subject_id ที่เลือก
   const fetchInitialLogs = useCallback(async () => {
     const dateString = formatDateForAPI(selectedDate);
-    
     let url = `${BACKEND_URL}/attendance/logs?start_date=${dateString}&end_date=${dateString}`;
-    
-    // ถ้ามีวิชาถูกเลือก (ไม่ใช่ค่าว่าง) ให้เพิ่ม subject_id เข้าไปใน query
-    if (selectedSubjectId) { // 👈 ถ้า selectedSubjectId เป็น "" บรรทัดนี้จะเป็น false
+    if (selectedSubjectId) {
       url += `&subject_id=${selectedSubjectId}`;
     }
-
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch logs");
@@ -355,7 +344,6 @@ const AccessControlPage = () => {
     }
   }, [selectedDate, selectedSubjectId]); 
 
-  // ✨ อัปเดต pollNewLogs ให้กรองตาม subject_id ที่เลือก
   const pollNewLogs = useCallback(async () => {
     if (!isViewingToday) return; 
     try {
@@ -365,8 +353,6 @@ const AccessControlPage = () => {
       
       if (newLogs.length > 0) { 
         const filteredNewLogs = newLogs.filter(log => 
-          // ถ้าไม่ได้เลือก Subject (id="") = แสดงทั้งหมด
-          // หรือ ถ้าเลือก Subject ไว้ = แสดงเฉพาะ Log ที่ subject_id ตรงกัน
           !selectedSubjectId || log.subject_id?.toString() === selectedSubjectId
         );
         if (filteredNewLogs.length > 0) {
@@ -376,7 +362,6 @@ const AccessControlPage = () => {
     } catch (err) { console.error("Failed to poll new logs:", err); }
   }, [isViewingToday, selectedSubjectId]);
 
-  // Effect สำหรับดึง Log
   useEffect(() => {
     fetchInitialLogs(); 
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -386,7 +371,6 @@ const AccessControlPage = () => {
     return () => { if (pollIntervalRef.current) { clearInterval(pollIntervalRef.current); } };
   }, [fetchInitialLogs, pollNewLogs, isViewingToday]); 
 
-  // Effect สำหรับดึง Config กล้อง (รันครั้งเดียว)
   useEffect(() => {
     const fetchCurrentConfig = async () => {
         try {
@@ -398,12 +382,10 @@ const AccessControlPage = () => {
       fetchCurrentConfig();
   }, []);
   
-  // ✨ [แก้ไข] Effect สำหรับดึงรายชื่อวิชา
   useEffect(() => {
     fetchSubjects();
-  }, [fetchSubjects]); // 👈 เรียกเมื่อ fetchSubjects (useCallback) พร้อมใช้งาน
+  }, [fetchSubjects]);
 
-  // Effect สำหรับนาฬิกา (รันครั้งเดียว)
   useEffect(() => {
     const timer = setInterval(() => { setCurrentTime(new Date()); }, 1000);
     return () => { clearInterval(timer); };
@@ -436,10 +418,54 @@ const AccessControlPage = () => {
     catch (err) { console.error(err); alert('Failed to stop attendance.'); }
   };
   
-  // ✨ อัปเดต Callback นี้ให้เรียก fetchSubjects
   const handleSubjectAdded = () => {
      alert("Subject created successfully!");
-     fetchSubjects(); // 👈 สั่งให้ดึงรายชื่อวิชาใหม่
+     fetchSubjects(); // สั่งให้ดึงรายชื่อวิชาใหม่
+  };
+
+  const handleExport = async () => {
+    console.log("Exporting data...");
+    const dateString = formatDateForAPI(selectedDate);
+    const subjectId = selectedSubjectId;
+    let url = `${BACKEND_URL}/attendance/export?start_date=${dateString}&end_date=${dateString}`;
+    if (subjectId) {
+      url += `&subject_id=${subjectId}`;
+    }
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch export data from backend');
+      }
+      const data: any[] = await response.json();
+      if (data.length === 0) {
+        alert("No data to export for the selected filters.");
+        return;
+      }
+      let txtContent = "";
+      const headers = Object.keys(data[0]);
+      txtContent += headers.join('\t') + '\r\n';
+      data.forEach(row => {
+        const values = headers.map(header => {
+          let val = row[header];
+          if (val === null || val === undefined) val = "N/A";
+          return `"${String(val).replace(/"/g, '""')}"`;
+        });
+        txtContent += values.join('\t') + '\r\n';
+      });
+      const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8;' });
+      const link = document.createElement("a");
+      const blobUrl = URL.createObjectURL(blob);
+      link.setAttribute("href", blobUrl);
+      link.setAttribute("download", `attendance_export_${dateString}.txt`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err: any) {
+      console.error("Export failed:", err);
+      alert(`Export failed: ${err.message}`);
+    }
   };
 
   return (
@@ -507,7 +533,10 @@ const AccessControlPage = () => {
             <label htmlFor="logDate">Select Date:</label>
             <input type="date" id="logDate" className={styles.dateInput} value={formatDateForAPI(selectedDate)} onChange={(e) => setSelectedDate(new Date(e.target.value))} />
           </div>
-          <button className={styles.exportButton}><Download size={16} /><span>Export data</span></button>
+          <button className={styles.exportButton} onClick={handleExport}>
+            <Download size={16} />
+            <span>Export data</span>
+          </button>
         </div>
         
         <div className={styles.tableContainer}>
