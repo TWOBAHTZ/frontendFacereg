@@ -627,7 +627,7 @@ const AccessControlPage = () => {
                           }
                         } catch (e) {
                           // กรณีเกิด Error (เช่น lateTime ว่างเปล่า)
-                          return <span className={styles.statusPresent}>enter</span>;
+                          return <span className={styles.statusPresent}>Enter</span>;
                         }
                       })()}
                     </td>
