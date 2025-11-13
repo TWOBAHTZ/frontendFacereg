@@ -19,7 +19,7 @@ import {
   ArcElement,
 } from 'chart.js';
 
-// ✨ 1. Import Library ที่ติดตั้งใหม่
+// 1. Import Library ที่ติดตั้งใหม่
 import { utils, writeFile } from 'xlsx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -81,7 +81,7 @@ const DashboardPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showExportMenu, setShowExportMenu] = useState(false);
   
-  // ✨ 2. แก้ไขชื่อ Ref
+  // 2. แก้ไขชื่อ Ref
   const dashboardContentRef = useRef<HTMLDivElement>(null); // (Ref สำหรับชี้ไปที่ "เนื้อหา" ที่จะถ่ายรูป)
   const [isExporting, setIsExporting] = useState(false);
 
@@ -143,7 +143,7 @@ const DashboardPage = () => {
     fetchAndProcessData();
   }, [fetchAndProcessData]);
 
-  // ✨ [ 3. แก้ไขฟังก์ชันนี้ทั้งหมด ]
+  // 3. แก้ไขฟังก์ชันนี้ทั้งหมด ]
   const handleExport = async (format: 'pdf' | 'png' | 'summary_xlsx' | 'raw_logs_xlsx') => {
     setShowExportMenu(false); // (สั่งปิดเมนู)
 
@@ -297,7 +297,7 @@ const DashboardPage = () => {
   }
 
   return (
-    // ✨ 4. ย้าย Ref ออกจาก Container หลัก
+    // 4. ย้าย Ref ออกจาก Container หลัก
     <div className={styles.pageContainer}>
       {isExporting && (
         <div className={styles.exportLoadingOverlay}>
@@ -322,7 +322,7 @@ const DashboardPage = () => {
             
             {showExportMenu && (
               <div className={styles.exportMenu}>
-                {/* ✨ 5. แก้ไขเมนู Dropdown ให้ชัดเจน */}
+                {/* 5. แก้ไขเมนู Dropdown ให้ชัดเจน */}
                 <button onClick={() => handleExport('pdf')}>Export Visual as .pdf</button>
                 <button onClick={() => handleExport('png')}>Export Visual as .png</button>
                 <hr className={styles.menuSeparator} />
@@ -334,7 +334,7 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* ✨ 6. เพิ่ม Ref ที่นี่ (หุ้มเฉพาะเนื้อหา) */}
+      {/* 6. เพิ่ม Ref ที่นี่ (หุ้มเฉพาะเนื้อหา) */}
       <div ref={dashboardContentRef}>
         {/* --- Stat Cards --- */}
         <div className={styles.statsGrid}>

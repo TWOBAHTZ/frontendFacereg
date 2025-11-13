@@ -213,7 +213,6 @@
     margin-bottom: 0.5rem;
 }
 
-/* [แก้ไข] เพิ่มสีตัวอักษร (สีดำ) */
 .formGroup input[type="text"] {
     width: 100%;
     padding: 0.75rem;
@@ -365,7 +364,6 @@
     animation: spin 1s linear infinite;
 }
 
-/* ✨ [ เพิ่ม CSS นี้ ] ✨ */
 .controlSelect {
     width: 100%;
     padding: 0.75rem;

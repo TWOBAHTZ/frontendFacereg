@@ -81,13 +81,13 @@ interface AddStudentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onStudentAdded: () => void;
-  subjects: Subject[]; // ✨ [เพิ่ม] รับ props subjects
+  subjects: Subject[]; // รับ props subjects
 }
 
 const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onStudentAdded, subjects }) => {
   const [name, setName] = useState('');
   const [studentCode, setStudentCode] = useState('');
-  const [subjectId, setSubjectId] = useState<string>(''); // ✨ [เพิ่ม] State สำหรับ Subject
+  const [subjectId, setSubjectId] = useState<string>('');
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -97,7 +97,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
   const resetForm = useCallback(() => {
     setName('');
     setStudentCode('');
-    setSubjectId(''); // ✨ [เพิ่ม] Reset
+    setSubjectId('');
     setFiles([]);
     setError('');
     setIsSubmitting(false);
@@ -139,7 +139,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
     setIsSubmitting(true);
 
     try {
-      // ✨ [แก้ไข] ส่ง subject_id ไปด้วย
+      // ส่ง subject_id ไปด้วย
       const userResponse = await fetch(`${BACKEND_URL}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -192,7 +192,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} disabled={isSubmitting} />
           </div>
 
-          {/* ✨ [เพิ่ม] Dropdown เลือกวิชา */}
           <div className={styles.formGroup}>
             <label>Subject (Optional)</label>
             <select
@@ -243,14 +242,14 @@ interface EditStudentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onStudentUpdated: () => void;
-  subjects: Subject[]; // ✨ [เพิ่ม] รับ props subjects
+  subjects: Subject[];
 }
 
 const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, onClose, onStudentUpdated, subjects }) => {
   if (!student) return null;
   const [name, setName] = useState('');
   const [studentCode, setStudentCode] = useState('');
-  const [subjectId, setSubjectId] = useState<string>(''); // ✨ [เพิ่ม] State สำหรับ Subject
+  const [subjectId, setSubjectId] = useState<string>('');
   const [existingFaces, setExistingFaces] = useState<UserFace[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [newPreviewUrls, setNewPreviewUrls] = useState<string[]>([]);
@@ -262,7 +261,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
     if (student && isOpen) {
       setName(student.name);
       setStudentCode(student.student_code || '');
-      setSubjectId(student.subject_id?.toString() || ''); // ✨ [เพิ่ม] Set ค่า Subject
+      setSubjectId(student.subject_id?.toString() || '');
       setExistingFaces(student.faces || []);
       setNewFiles([]);
       setNewPreviewUrls([]);
@@ -297,7 +296,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
   const handleDeleteExistingFace = async (faceId: number) => {
     if (!window.confirm("Delete this image?")) return;
 
-    // ✨ [แก้ไข] แก้เงื่อนไขเป็นอย่างน้อย 4 รูป
+    // แก้เงื่อนไขเป็นอย่างน้อย 4 รูป
     if (existingFaces.length + newFiles.length <= 4) {
       setError(`ต้องมีรูปภาพอย่างน้อย 4 รูป (ห้ามลบ)`);
       return;
@@ -327,7 +326,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
 
     setIsSubmitting(true);
     try {
-      // ✨ [แก้ไข] ตรวจสอบว่ามีอะไรเปลี่ยนบ้าง
+      // ตรวจสอบว่ามีอะไรเปลี่ยนบ้าง
       const infoChanged =
         name !== student.name ||
         studentCode !== student.student_code ||
@@ -379,7 +378,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
           <div className={styles.formGroup}><label>Student ID</label><input type="text" value={studentCode} onChange={e => /^[0-9]*$/.test(e.target.value) && setStudentCode(e.target.value)} disabled={isSubmitting} /></div>
           <div className={styles.formGroup}><label>Name</label><input type="text" value={name} onChange={e => setName(e.target.value)} disabled={isSubmitting} /></div>
 
-          {/* ✨ [เพิ่ม] Dropdown เลือกวิชา */}
+          {/* Dropdown เลือกวิชา */}
           <div className={styles.formGroup}>
             <label>Subject</label>
             <select
@@ -433,7 +432,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
 // --- Page Component ---
 const ListStudentPage = () => {
   const [students, setStudents] = useState<User[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]); // ✨ [เพิ่ม] State
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<User | null>(null);
@@ -449,7 +448,7 @@ const ListStudentPage = () => {
     }
   }, []);
 
-  // ✨ [เพิ่ม] ฟังก์ชันดึง Subjects
+  // ฟังก์ชันดึง Subjects
   const fetchSubjects = useCallback(async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/subjects`);
@@ -461,7 +460,7 @@ const ListStudentPage = () => {
     }
   }, []);
 
-  // ✨ [แก้ไข] ให้ดึง 2 อย่างพร้อมกัน
+  // ให้ดึง 2 อย่างพร้อมกัน
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -491,7 +490,7 @@ const ListStudentPage = () => {
 
   return (
     <div className={styles.pageContainer}>
-      {/* ✨ [แก้ไข] ส่ง prop 'subjects' เข้าไป */}
+      {/* ส่ง prop 'subjects' เข้าไป */}
       <AddStudentModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onStudentAdded={handleDataUpdated} subjects={subjects} />
       <EditStudentModal isOpen={!!editingStudent} onClose={() => setEditingStudent(null)} student={editingStudent} onStudentUpdated={handleDataUpdated} subjects={subjects} />
 

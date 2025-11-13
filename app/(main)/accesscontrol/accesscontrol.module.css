@@ -2,7 +2,6 @@
 .pageContainer {
     padding: 2rem;
     background-color: #f8fafc;
-    /* ✨ เพิ่ม display: flex เพื่อให้ logCard ยืดได้ */
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -171,7 +170,7 @@
     padding: 1.5rem;
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
     
-    /* ✨ เพิ่ม flex-1 และ display: flex */
+    /* flex-1 และ display: flex */
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -202,7 +201,6 @@
 .exportButton:hover { background-color: #2563eb; }
 
 /* --- Attendance Table --- */
-/* ✨ เพิ่ม .tableContainer */
 .tableContainer {
     flex: 1;
     overflow-y: auto;
@@ -307,7 +305,7 @@
     font-weight: 500; /* อาจจะลด font-weight ลงเล็กน้อย */
 }
 
-/* ✨ [ใหม่] สไตล์สำหรับ Date Picker --- */
+/* สไตล์สำหรับ Date Picker --- */
 .datePickerContainer {
     display: flex;
     align-items: center;
@@ -325,7 +323,7 @@
     color: #334155;
 }
 
-/* ✨ [ใหม่] สไตล์สำหรับ Dropdown (Select) */
+/* สไตล์สำหรับ Dropdown (Select) */
 .controlSelect {
     padding: 0.5rem 0.75rem;
     border: 1px solid #cbd5e1;
@@ -344,7 +342,7 @@
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
-/* ✨ [ใหม่] สไตล์สำหรับปุ่ม Icon (ปุ่มบวก) */
+/* สไตล์สำหรับปุ่ม Icon (ปุ่มบวก) */
 .iconButton {
     display: flex;
     align-items: center;
@@ -363,7 +361,7 @@
     background-color: #e5e7eb;
 }
 
-/* ✨ [ใหม่] สไตล์สำหรับ Modal Form (เพื่อให้เหมือน AddStudent) */
+/* สไตล์สำหรับ Modal Form (เพื่อให้เหมือน AddStudent) */
 .modalForm {
     margin-top: 1.5rem;
     display: flex;
