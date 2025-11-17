@@ -1,45 +1,88 @@
-import React from 'react';
+'use client'; 
+
+import React, { useEffect } from 'react'; // ✨ [แก้ไข] 1. Import useEffect
 import styles from './login.module.css';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
-const LoginPage = () => {
+// ✨ [แก้ไข] 2. Import MsalProvider
+import { useMsal, useIsAuthenticated, MsalProvider } from "@azure/msal-react"; 
+
+// ✨ [แก้ไข] 3. Import msalInstance ที่แชร์กัน
+import { msalInstance } from '../authConfig'; 
+
+// ❌ [ลบ] 4. ลบการสร้าง instance ใหม่ออก
+// import { PublicClientApplication } from "@azure/msal-browser";
+// import { msalConfig } from '../../authConfig';
+// const msalInstance = new PublicClientApplication(msalConfig);
+
+const LoginPageContent = () => {
+  const router = useRouter();
+  const { instance } = useMsal(); 
+  const isAuthenticated = useIsAuthenticated();
+
+  const handleLogin = async () => {
+    try {
+      const loginResponse = await instance.loginPopup({
+        scopes: ["api://af39ad67-ec03-4cbd-88f3-762dd7a58dfe/access_as_user"]
+      });
+      console.log("Login successful:", loginResponse);
+      router.push('/accesscontrol'); 
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
+
+  // ✨ [แก้ไข] 5. ย้าย redirect เข้าไปใน useEffect (แก้ Warning)
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/accesscontrol');
+    }
+  }, [isAuthenticated, router]);
+
+  if (isAuthenticated) {
+    // แค่แสดง loading, ไม่ต้อง redirect ที่นี่
+    return (
+      <div className={styles.container}>
+        <p>Authenticated. Redirecting...</p>
+      </div>
+    );
+  }
+
+  // (UI ที่เหลือเหมือนเดิม)
   return (
     <div className={styles.container}>
       <div className={styles.loginBox}>
-        
-        {/* --- Header Section (Logo & Title) --- */}
         <div className={styles.header}>
           <div className={styles.logoWrapper}>
-            {/* โลโก้ Microsoft (รูปยาว) */}
             <Image 
-              src="/Microsoft_logo.png" // ตรวจสอบ path รูปภาพให้ถูกต้อง
+              src="/Microsoft_logo.png" 
               alt="Microsoft Logo" 
               width={200}
               height={50}
               className={styles.headerLogo}
               priority 
+              onError={(e) => e.currentTarget.style.display = 'none'} 
             />
           </div>
           <h2>Sign In</h2>
           <p>Use your Microsoft account to continue.</p>
         </div>
 
-        {/* --- Sign-in Button Section --- */}
         <div className={styles.signInWrapper}>
-          <button className={styles.microsoftButton}>
-            {/* ไอคอน Microsoft ในปุ่ม (มักเป็นสี่เหลี่ยม 4 สี) */}
+          <button className={styles.microsoftButton} onClick={handleLogin}>
             <Image 
-              src="/microsoft-logo.png" // ตรวจสอบ path รูปภาพให้ถูกต้อง
+              src="/microsoft-logo.png" 
               alt="Microsoft Icon" 
               width={22} 
               height={22} 
+              onError={(e) => e.currentTarget.style.display = 'none'} 
             />
             <span>Sign in with Microsoft</span>
           </button>
         </div>
 
-        {/* --- Footer Section --- */}
         <div className={styles.footer}>
           <p>
             Having trouble?{' '}
@@ -50,6 +93,16 @@ const LoginPage = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// --- (ส่วนหุ้ม MsalProvider) ---
+const LoginPage = () => {
+  return (
+    // ✨ [แก้ไข] 6. ใช้ msalInstance ที่ import เข้ามา
+    <MsalProvider instance={msalInstance}>
+      <LoginPageContent />
+    </MsalProvider>
   );
 };
 

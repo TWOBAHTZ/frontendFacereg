@@ -4,26 +4,50 @@ import React, { useEffect, useRef, useState, useCallback, FormEvent } from 'reac
 import { Settings, Download, X, VideoOff, Plus, Loader2, Save, Trash2, Users } from 'lucide-react'; 
 import styles from './accesscontrol.module.css';
 
+// ✨ 1. Import MSAL และ Helper
+import { useMsal } from "@azure/msal-react";
+import { getAuthToken } from "../../authConfig";
+
 const BACKEND_URL = 'http://localhost:8000';
 const WS_BACKEND_URL = 'ws://localhost:8000';
 
-// --- (SettingsModal Component - เหมือนเดิม) ---
+// ✨ [ใหม่] 2. ย้าย Interface มาไว้ข้างบนสุด
+// (เพื่อให้ทุก Component ในไฟล์นี้ใช้ Interface เดียวกัน)
+interface Subject {
+  subject_id: number;
+  subject_name: string;
+  section?: string | null;
+  schedule?: string | null;
+  academic_year?: string | null; 
+  class_start_time?: string | null; // (API ส่งมาเป็น string)
+}
+
+// --- (SettingsModal Component) ---
 interface SettingsModalProps { isOpen: boolean; onClose: () => void; onSelectDevice: (src: string) => void; }
 interface DiscoveredDevice { src: string; width: number; height: number; readable: boolean; }
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSelectDevice }) => {
   const [devices, setDevices] = useState<DiscoveredDevice[]>([]);
   const selectRef = useRef<HTMLSelectElement>(null);
+  
+  const { instance, accounts } = useMsal();
+
   useEffect(() => {
     const getBackendDevices = async () => {
+      if (accounts.length === 0) return;
       try {
-        const response = await fetch(`${BACKEND_URL}/cameras/discover`);
+        const accessToken = await getAuthToken(instance, accounts[0]);
+        const headers = { "Authorization": `Bearer ${accessToken}` };
+        
+        const response = await fetch(`${BACKEND_URL}/cameras/discover`, { headers });
         if (!response.ok) throw new Error("Failed to fetch devices");
+        
         const data: { devices: DiscoveredDevice[] } = await response.json();
         setDevices(data.devices.filter(d => d.readable));
       } catch (err) { console.error("Could not get video devices from backend:", err); }
     };
     if (isOpen) { getBackendDevices(); }
-  }, [isOpen]);
+  }, [isOpen, instance, accounts]);
+  
   if (!isOpen) return null;
   const handleConfirm = () => {
     if (selectRef.current?.value) { onSelectDevice(selectRef.current.value); onClose(); }
@@ -44,7 +68,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSelect
   );
 };
 
-// --- (AddSubjectModal Component - เหมือนเดิม) ---
+// --- (AddSubjectModal Component) ---
 interface AddSubjectModalProps { isOpen: boolean; onClose: () => void; onSubjectAdded: () => void; }
 const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSubjectAdded }) => {
   const [subjectName, setSubjectName] = useState('');
@@ -54,22 +78,38 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSu
   const [classStartTime, setClassStartTime] = useState('09:00'); 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  
+  const { instance, accounts } = useMsal();
+
   useEffect(() => {
     if (isOpen) {
       setSubjectName(''); setSection(''); setSchedule(''); setError('');
       setAcademicYear(''); setClassStartTime('09:00'); 
     }
   }, [isOpen]);
+  
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     if (!subjectName.trim()) { setError('Subject Name is required'); return; }
     if (!academicYear.trim()) { setError('Academic Year is required'); return; } 
+    
+    if (accounts.length === 0) {
+      setError("Not logged in. Please log in again.");
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
+      const accessToken = await getAuthToken(instance, accounts[0]);
+      const headers = { 
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${accessToken}` 
+      };
+
       const res = await fetch(`${BACKEND_URL}/subjects`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify({
           subject_name: subjectName,
           section: section || null,
@@ -84,6 +124,7 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSu
     } catch (err: any) { setError(err.message); } 
     finally { setIsSubmitting(false); }
   };
+  
   const handleSectionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (/^\d*$/.test(value)) { setSection(value); }
@@ -95,6 +136,7 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSu
         <button className={styles.closeButton} onClick={onClose}><X size={20} /></button>
         <h2>Create New Subject</h2>
         <form onSubmit={handleSubmit} className={styles.modalForm}>
+          {/* ... (UI ของ Form เหมือนเดิม) ... */}
           <div className={styles.formGroup}>
             <label htmlFor="academicYear">Academic Year <span style={{ color: '#ef4444' }}>*</span></label>
             <input id="academicYear" type="text" value={academicYear} onChange={e => setAcademicYear(e.target.value)} placeholder="e.g. 2024-2025" disabled={isSubmitting} required />
@@ -126,43 +168,58 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSu
 };
 
 
-// (DeleteSubjectModal Component - เหมือนเดิม)
-interface Subject {
-  subject_id: number;
-  subject_name: string;
-  section?: string | null;
-  schedule?: string | null;
-  academic_year?: string | null; 
-  class_start_time?: string | null; 
-}
+// (DeleteSubjectModal Component)
 interface DeleteSubjectModalProps { isOpen: boolean; onClose: () => void; onSubjectDeleted: () => void; }
 export const DeleteSubjectModal: React.FC<DeleteSubjectModalProps> = ({ isOpen, onClose, onSubjectDeleted }) => {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]); // (ใช้ Interface ที่แชร์)
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
+  
+  const { instance, accounts } = useMsal();
+
   useEffect(() => {
     const fetchSubjects = async () => {
+      if (accounts.length === 0) return;
       try {
-        const response = await fetch(`${BACKEND_URL}/subjects`);
+        const accessToken = await getAuthToken(instance, accounts[0]);
+        const headers = { "Authorization": `Bearer ${accessToken}` };
+        
+        // ✨ [แก้ไข] 3. เรียก API /subjects
+        const response = await fetch(`${BACKEND_URL}/subjects`, { headers });
         if (!response.ok) throw new Error("Failed to fetch subjects");
+        
         setSubjects(await response.json());
         setError('');
       } catch (err: any) { setError(err.message); }
     };
     if (isOpen) { fetchSubjects(); }
-  }, [isOpen, onSubjectDeleted]); 
+  }, [isOpen, onSubjectDeleted, instance, accounts]);
+  
   const handleDelete = async (subjectId: number, subjectName: string) => {
     if (!window.confirm(`Are you sure you want to delete "${subjectName}"?`)) { return; }
+    
+    if (accounts.length === 0) {
+      setError("Not logged in. Please log in again.");
+      return;
+    }
+    
     setDeletingId(subjectId);
     setError('');
     try {
-      const res = await fetch(`${BACKEND_URL}/subjects/${subjectId}`, { method: 'DELETE' });
+      const accessToken = await getAuthToken(instance, accounts[0]);
+      const headers = { "Authorization": `Bearer ${accessToken}` };
+      
+      const res = await fetch(`${BACKEND_URL}/subjects/${subjectId}`, { 
+        method: 'DELETE', 
+        headers: headers
+      });
       if (!res.ok) { const data = await res.json(); throw new Error(data.detail || 'Failed to delete'); }
       onSubjectDeleted(); 
       setSubjects(prev => prev.filter(s => s.subject_id !== subjectId));
     } catch (err: any) { setError(err.message); } 
     finally { setDeletingId(null); }
   };
+  
   if (!isOpen) return null;
   return (
     <div className={styles.modalBackdrop} onClick={onClose} style={{ zIndex: 1100 }}>
@@ -265,22 +322,24 @@ const CameraBox: React.FC<CameraBoxProps> = ({ camId, streamKey, onSettingsClick
   );
 };
 
-// --- [ ⭐️⭐️⭐️ 3. แก้ไข Interface นี้ ⭐️⭐️⭐️ ] ---
+// (Interface LogEntry - เหมือนเดิม)
 interface LogEntry { 
   log_id: number; user_id: number; user_name: string; student_code: string; 
   action: "enter" | "exit"; 
   timestamp: string; confidence: number | null; 
   subject_id: number | null; snapshot_path: string | null;
-  log_status: "Present" | "Late" | null; // ( ⭐️ เพิ่ม field นี้ )
+  log_status: "Present" | "Late" | null;
 }
-// (Subject interface ย้ายไปข้างบนแล้ว)
 
 // --- (Main Page Component) ---
 const AccessControlPage = () => {
-  // (State เดิม)
+  const { instance, accounts } = useMsal();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentTargetCamera, setCurrentTargetCamera] = useState<'entrance' | 'exit' | null>(null);
-  const [selectedSources, setSelectedSources] = useState({ entrance: '', exit: '' });
+  
+  const [selectedSources, setSelectedSources] = useState<null | { entrance: string, exit: string }>(null);
+  
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -289,8 +348,10 @@ const AccessControlPage = () => {
   const isViewingToday = selectedDate.toDateString() === new Date().toDateString();
   const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [subjects, setSubjects] = useState<Subject[]>([]); 
+  
+  const [subjects, setSubjects] = useState<Subject[]>([]); // (ใช้ Interface ที่แชร์)
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
+  
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [snapshotModalUrl, setSnapshotModalUrl] = useState<string | null>(null);
   const [studentCount, setStudentCount] = useState({ checked: 0, total: 0 });
@@ -299,17 +360,23 @@ const AccessControlPage = () => {
   const formatDateForAPI = (date: Date): string => { return date.toISOString().split('T')[0]; };
 
   const fetchSubjects = useCallback(async () => {
+    if (accounts.length === 0) return;
     try {
-      const response = await fetch(`${BACKEND_URL}/subjects`);
+      const accessToken = await getAuthToken(instance, accounts[0]);
+      const headers = { "Authorization": `Bearer ${accessToken}` };
+      
+      // ✨ [แก้ไข] 4. เรียก API ที่ถูกต้อง (/subjects)
+      const response = await fetch(`${BACKEND_URL}/subjects`, { headers });
       if (!response.ok) throw new Error("Failed to fetch subjects");
-      const data: Subject[] = await response.json();
+      
+      const data: Subject[] = await response.json(); // (ตอนนี้ Type จะตรงแล้ว)
       setSubjects(data);
       
       let currentSubjId = selectedSubjectId;
-      // ( ⭐️ เพิ่ม ) ถ้ายังไม่มีวิชาที่เลือก ให้เลือกอันแรก
       if (!currentSubjId && data.length > 0) {
-        currentSubjId = data[0].subject_id.toString();
-        setSelectedSubjectId(currentSubjId); // (ตั้งค่า state ด้วย)
+        // ✨ [แก้ไข] 5. ใช้ .subject_id (Error 98175e)
+        currentSubjId = data[0].subject_id.toString(); 
+        setSelectedSubjectId(currentSubjId);
       }
 
       if(currentSubjId) {
@@ -321,24 +388,31 @@ const AccessControlPage = () => {
         }
       }
     } catch (err) { console.error("Failed to fetch subjects:", err); }
-  }, [selectedSubjectId]); 
+  }, [selectedSubjectId, instance, accounts]); 
 
   const fetchInitialLogs = useCallback(async () => {
+    if (accounts.length === 0) return;
     const dateString = formatDateForAPI(selectedDate);
     let url = `${BACKEND_URL}/attendance/logs?start_date=${dateString}&end_date=${dateString}`;
     if (selectedSubjectId) { url += `&subject_id=${selectedSubjectId}`; }
     try {
-      const response = await fetch(url);
+      const accessToken = await getAuthToken(instance, accounts[0]);
+      const headers = { "Authorization": `Bearer ${accessToken}` };
+      
+      const response = await fetch(url, { headers });
       if (!response.ok) throw new Error("Failed to fetch logs");
       const data: LogEntry[] = await response.json();
       setLogs(data);
     } catch (err) { console.error("Failed to fetch initial logs:", err); setLogs([]); }
-  }, [selectedDate, selectedSubjectId]); 
+  }, [selectedDate, selectedSubjectId, instance, accounts]); 
 
   const pollNewLogs = useCallback(async () => {
-    if (!isViewingToday) return; 
+    if (!isViewingToday || accounts.length === 0) return; 
     try {
-      const response = await fetch(`${BACKEND_URL}/attendance/poll`);
+      const accessToken = await getAuthToken(instance, accounts[0]);
+      const headers = { "Authorization": `Bearer ${accessToken}` };
+
+      const response = await fetch(`${BACKEND_URL}/attendance/poll`, { headers });
       if (!response.ok) throw new Error("Failed to poll logs");
       const newLogs: LogEntry[] = await response.json();
       if (newLogs.length > 0) { 
@@ -348,8 +422,9 @@ const AccessControlPage = () => {
         }
       }
     } catch (err) { console.error("Failed to poll new logs:", err); }
-  }, [isViewingToday, selectedSubjectId]);
+  }, [isViewingToday, selectedSubjectId, instance, accounts]); 
 
+  // (useEffect ของ studentCount - เหมือนเดิม)
   useEffect(() => {
     if (selectedSubjectId) { 
       const enteredLogs = logs.filter(log => log.action === 'enter');
@@ -360,7 +435,7 @@ const AccessControlPage = () => {
     }
   }, [logs, selectedSubjectId]); 
 
-
+  // (useEffect ของ poll - เหมือนเดิม)
   useEffect(() => {
     fetchInitialLogs(); 
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -370,21 +445,32 @@ const AccessControlPage = () => {
 
   useEffect(() => {
     const fetchCurrentConfig = async () => {
+        if (accounts.length === 0) return; 
         try {
-          const response = await fetch(`${BACKEND_URL}/cameras/config`);
+          const accessToken = await getAuthToken(instance, accounts[0]);
+          const headers = { "Authorization": `Bearer ${accessToken}` };
+          
+          const response = await fetch(`${BACKEND_URL}/cameras/config`, { headers });
+          if (!response.ok) throw new Error("Failed to fetch camera config");
+          
           const data: { mapping: { entrance: string, exit: string } } = await response.json();
           setSelectedSources(data.mapping);
         } catch (err) { console.error("Failed to fetch camera config:", err); }
       };
       fetchCurrentConfig();
-  }, []);
+  }, [instance, accounts]);
   
   useEffect(() => { fetchSubjects(); }, [fetchSubjects]);
   useEffect(() => { const timer = setInterval(() => { setCurrentTime(new Date()); }, 1000); return () => { clearInterval(timer); }; }, []);
 
   const handleSubjectChange = async (newSubjectId: string) => {
+    if (accounts.length === 0) { console.error("Not logged in"); return; }
+    
     setSelectedSubjectId(newSubjectId);
+    
+    // ✨ [แก้ไข] 6. ใช้ .subject_id (Error 98177c)
     const selectedSubj = subjects.find(s => s.subject_id.toString() === newSubjectId);
+    
     if (selectedSubj && selectedSubj.class_start_time) {
       setLateTime(selectedSubj.class_start_time.substring(0, 5)); 
     } else {
@@ -392,38 +478,42 @@ const AccessControlPage = () => {
     }
     const subjectIdAsInt = newSubjectId ? parseInt(newSubjectId, 10) : null;
     setStudentCount({ checked: 0, total: 0 });
+    
     try {
+      const accessToken = await getAuthToken(instance, accounts[0]);
+      
       const res = await fetch(`${BACKEND_URL}/attendance/set_active_subject`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${accessToken}` },
         body: JSON.stringify({ subject_id: subjectIdAsInt }),
       });
       if (!res.ok) throw new Error("Failed to set active subject");
       const data = await res.json();
       console.log("Backend roster updated:", data);
-    } catch (err) {
-      console.error("Failed to set active subject:", err);
-    }
-    if (subjectIdAsInt) {
-      try {
-        const res = await fetch(`${BACKEND_URL}/subjects/${subjectIdAsInt}/student_count`);
-        if (!res.ok) throw new Error("Failed to fetch student count");
-        const data = await res.json();
-        setStudentCount(prev => ({ ...prev, total: data.total_students }));
-      } catch (err) {
-        console.error("Failed to fetch student count:", err);
+      
+      if (subjectIdAsInt) {
+        const countRes = await fetch(`${BACKEND_URL}/subjects/${subjectIdAsInt}/student_count`, {
+          headers: { "Authorization": `Bearer ${accessToken}` }
+        });
+        if (!countRes.ok) throw new Error("Failed to fetch student count");
+        const countData = await countRes.json();
+        setStudentCount(prev => ({ ...prev, total: countData.total_students }));
       }
+    } catch (err) {
+      console.error("Failed to update subject info:", err);
     }
   };
 
   const handleSaveTime = async () => {
+    if (accounts.length === 0) { alert("Not logged in."); return; }
     if (!selectedSubjectId) { alert("Please select a subject first."); return; }
     if (!lateTime) { alert("Please enter a valid time."); return; }
     setIsSavingTime(true);
     try {
+        const accessToken = await getAuthToken(instance, accounts[0]);
         const res = await fetch(`${BACKEND_URL}/api/subjects/${selectedSubjectId}/time`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${accessToken}` },
             body: JSON.stringify({ class_start_time: lateTime }),
         });
         if (!res.ok) { const data = await res.json(); throw new Error(data.detail || 'Failed to save time'); }
@@ -438,31 +528,67 @@ const AccessControlPage = () => {
   };
 
   const handleOpenModal = (target: 'entrance' | 'exit') => { setCurrentTargetCamera(target); setIsModalOpen(true); };
+  
   const handleSelectDevice = async (src: string) => {
-    if (currentTargetCamera) {
+    if (accounts.length === 0) { console.error("Not logged in"); return; }
+    
+    if (currentTargetCamera && selectedSources) {
       try {
+        const accessToken = await getAuthToken(instance, accounts[0]);
         const newMapping = { ...selectedSources, [currentTargetCamera]: src };
+        
         const response = await fetch(`${BACKEND_URL}/cameras/config`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newMapping),
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${accessToken}` }, 
+          body: JSON.stringify(newMapping),
         });
         if (!response.ok) throw new Error("Failed to configure backend");
+        
         setSelectedSources(newMapping); 
       } catch (err) { console.error("Failed to set new camera source:", err); }
+    } else {
+      console.error("handleSelectDevice called but currentTargetCamera or selectedSources is null");
     }
   };
   
-  const handleStartAttendance = async () => { try { await fetch(`${BACKEND_URL}/attendance/start`, { method: 'POST' }); alert('Attendance Started!'); } catch (err) { console.error(err); alert('Failed to start attendance.'); } };
-  const handleStopAttendance = async () => { try { await fetch(`${BACKEND_URL}/attendance/stop`, { method: 'POST' }); alert('Attendance Stopped!'); } catch (err) { console.error(err); alert('Failed to stop attendance.'); } };
+  const handleStartAttendance = async () => { 
+    if (accounts.length === 0) { alert("Not logged in."); return; }
+    try { 
+      const accessToken = await getAuthToken(instance, accounts[0]);
+      await fetch(`${BACKEND_URL}/attendance/start`, { 
+        method: 'POST', 
+        headers: { "Authorization": `Bearer ${accessToken}` } 
+      }); 
+      alert('Attendance Started!'); 
+    } catch (err) { console.error(err); alert('Failed to start attendance.'); } 
+  };
+  
+  const handleStopAttendance = async () => { 
+    if (accounts.length === 0) { alert("Not logged in."); return; }
+    try { 
+      const accessToken = await getAuthToken(instance, accounts[0]);
+      await fetch(`${BACKEND_URL}/attendance/stop`, { 
+        method: 'POST', 
+        headers: { "Authorization": `Bearer ${accessToken}` } 
+      }); 
+      alert('Attendance Stopped!'); 
+    } catch (err) { console.error(err); alert('Failed to stop attendance.'); } 
+  };
+  
   const handleSubjectAdded = () => { alert("Subject created successfully!"); fetchSubjects(); };
+  
   const handleSubjectDeleted = () => {
      fetchSubjects();
      if (selectedSubjectId && !subjects.find(s => s.subject_id.toString() === selectedSubjectId)) {
        handleSubjectChange('');
      }
   };
+  
   const handleExport = async (format: 'csv' | 'xlsx') => {
+    if (accounts.length === 0) { alert("Not logged in."); return; }
     console.log(`Exporting data as ${format}...`);
     setShowExportMenu(false);
+    
     const dateString = formatDateForAPI(selectedDate);
     const subjectId = selectedSubjectId;
     const params = new URLSearchParams();
@@ -471,13 +597,34 @@ const AccessControlPage = () => {
     if (subjectId) { params.append("subject_id", subjectId); }
     params.append("format", format); 
     const url = `${BACKEND_URL}/attendance/export?${params.toString()}`;
+    
     try {
+      const accessToken = await getAuthToken(instance, accounts[0]);
+      const headers = { "Authorization": `Bearer ${accessToken}` };
+      
+      const response = await fetch(url, { headers });
+      if (!response.ok) throw new Error(`Export failed: ${response.statusText}`);
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = url;
-      link.style.visibility = 'hidden';
+      link.href = downloadUrl;
+      
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `export-${dateString}.${format}`; 
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+        if (filenameMatch && filenameMatch.length > 1) {
+            filename = filenameMatch[1];
+        }
+      }
+      
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      
     } catch (err: any) {
          console.error("Export failed:", err);
          alert(`Export failed: ${err.message}`);
@@ -495,9 +642,18 @@ const AccessControlPage = () => {
       <header className={styles.header}>
         <h1 className={styles.headerTitle}>Camera Preview</h1>
       </header>
+      
       <div className={styles.cameraGrid}>
-        <CameraBox camId="entrance" streamKey={selectedSources.entrance} onSettingsClick={() => handleOpenModal('entrance')} />
-        <CameraBox camId="exit" streamKey={selectedSources.exit} onSettingsClick={() => handleOpenModal('exit')} />
+        {!selectedSources ? (
+          <div className={styles.loadingBox}>
+            <Loader2 className={styles.spinner} /> Loading camera config...
+          </div>
+        ) : (
+          <>
+            <CameraBox camId="entrance" streamKey={selectedSources.entrance} onSettingsClick={() => handleOpenModal('entrance')} />
+            <CameraBox camId="exit" streamKey={selectedSources.exit} onSettingsClick={() => handleOpenModal('exit')} />
+          </>
+        )}
       </div>
       
       <div className={styles.controlPanel}>
@@ -513,6 +669,7 @@ const AccessControlPage = () => {
               style={{ flex: 1, minWidth: '150px' }} 
             >
               <option value="">-- All Subjects --</option>
+              {/* ✨ [แก้ไข] 7. ใช้ .subject_id (Error 981778) */}
               {subjects.map((subj) => (
                 <option key={subj.subject_id} value={subj.subject_id}>
                   {subj.academic_year ? `[${subj.academic_year}] ` : ''}
@@ -611,25 +768,17 @@ const AccessControlPage = () => {
                     <td className={styles.tableCellText}>{new Date(log.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</td>
                     <td className={styles.tableCellText}>{log.user_name}</td>
                     <td className={styles.tableCellText}>{log.student_code}</td>
-                    
-                    {/* [ ⭐️⭐️⭐️ 4. แก้ไข Logic การแสดงผล ⭐️⭐️⭐️ ] */}
                     <td className={styles.tableCellStatus}>
                       {(() => {
-                        // (แสดง "Exit" ก่อน)
                         if (log.action === 'exit') {
                           return <span className={styles.statusExit}>Exit</span>;
                         }
-                        
-                        // (แสดง Status ที่บันทึกไว้จาก DB)
                         if (log.log_status === 'Late') {
                           return <span className={styles.statusLate}>Enter (Late)</span>;
                         }
-                        
-                        // (ค่า default คือ On-Time)
                         return <span className={styles.statusPresent}>Enter (On-Time)</span>;
                       })()}
                     </td>
-                    
                     <td className={styles.tableCellSnapshot}>
                       {log.snapshot_path ? (
                         <img 
