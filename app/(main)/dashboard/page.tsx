@@ -7,7 +7,6 @@ import {
   CheckCircle, XCircle, AlertTriangle, Download
 } from 'lucide-react';
 
-// (Import Chart.js components)
 import { Bar, Line, Pie } from 'react-chartjs-2'; 
 import {
   Chart as ChartJS,
@@ -15,16 +14,13 @@ import {
   PointElement, LineElement, ArcElement,
 } from 'chart.js';
 
-// Import Library สำหรับ Export
 import { utils, writeFile } from 'xlsx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-// ✨ [ใหม่] 1. Import MSAL และ Helper
 import { useMsal } from "@azure/msal-react";
 import { getAuthToken } from "../../authConfig";
 
-// (ลงทะเบียน Components ของ Chart.js)
 ChartJS.register(
   CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
   PointElement, LineElement, ArcElement
@@ -220,20 +216,21 @@ const LiveSessionTable: React.FC<{ data: ISessionViewData['liveDataTable'] }> = 
 
 // --- Component: หน้าหลัก Dashboard ---
 const FacultyDashboardPage = () => {
-  // ✨ [ใหม่] 2. เรียกใช้ useMsal
   const { instance, accounts } = useMsal();
 
-  // --- State (เหมือนเดิม) ---
+  // --- State ---
   const [subjects, setSubjects] = useState<ISubject[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   
-  const getDaysAgo = (days: number) => {
-    const date = new Date();
+  const getDaysAgo = (days: number, fromDate?: string) => {
+    const baseDate = fromDate ? new Date(fromDate) : new Date();
+    const date = new Date(baseDate.toISOString().split('T')[0] + 'T12:00:00Z');
     date.setDate(date.getDate() - days);
     return date.toISOString().split('T')[0];
   }
+  
   const [semesterStartDate, setSemesterStartDate] = useState<string>(getDaysAgo(30));
   const [semesterEndDate, setSemesterEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
   
@@ -245,10 +242,10 @@ const FacultyDashboardPage = () => {
   const [isExporting, setIsExporting] = useState(false);
   const contentAreaRef = useRef<HTMLDivElement>(null); 
 
-  // --- Fetching Data (✨ [แก้ไข] ทั้งหมด) ---
+  // --- Fetching Data (เหมือนเดิม) ---
   useEffect(() => {
     const fetchSubjects = async () => {
-      if (accounts.length === 0) return; // (รอจนกว่าจะ Login)
+      if (accounts.length === 0) return;
       try {
         const accessToken = await getAuthToken(instance, accounts[0]);
         const headers = { "Authorization": `Bearer ${accessToken}` };
@@ -264,13 +261,14 @@ const FacultyDashboardPage = () => {
       } catch (error) { console.error("Error fetching subjects:", error); }
     };
     fetchSubjects();
-  }, [instance, accounts]); // (เพิ่ม instance, accounts)
+  }, [instance, accounts]); 
 
   useEffect(() => {
     if (!selectedSubject || !semesterStartDate || !semesterEndDate || accounts.length === 0) return; 
     
     const fetchSemesterData = async () => {
       setIsSemesterLoading(true);
+      console.log(`Fetching SEMESTER data from ${semesterStartDate} to ${semesterEndDate}`);
       try {
         const accessToken = await getAuthToken(instance, accounts[0]);
         const headers = { "Authorization": `Bearer ${accessToken}` };
@@ -288,13 +286,14 @@ const FacultyDashboardPage = () => {
       } finally { setIsSemesterLoading(false); }
     };
     fetchSemesterData();
-  }, [selectedSubject, semesterStartDate, semesterEndDate, instance, accounts]); // (เพิ่ม instance, accounts)
+  }, [selectedSubject, semesterStartDate, semesterEndDate, instance, accounts]); 
 
   useEffect(() => {
     if (!selectedSubject || !selectedDate || accounts.length === 0) return;
     
     const fetchSessionData = async () => {
       setIsSessionLoading(true);
+      console.log(`Fetching SESSION data for ${selectedDate}`);
       try {
         const accessToken = await getAuthToken(instance, accounts[0]);
         const headers = { "Authorization": `Bearer ${accessToken}` };
@@ -311,30 +310,43 @@ const FacultyDashboardPage = () => {
       } finally { setIsSessionLoading(false); }
     };
     fetchSessionData();
-  }, [selectedSubject, selectedDate, instance, accounts]); // (เพิ่ม instance, accounts)
+  }, [selectedSubject, selectedDate, instance, accounts]); 
 
+  
+  // (Handler ฟิลเตอร์วันที่หลัก ที่เชื่อมโยงกัน)
+  const handleSessionDateChange = (newDate: string) => {
+    const validNewDate = newDate || new Date().toISOString().split('T')[0];
+    setSelectedDate(validNewDate);
+    setSemesterEndDate(validNewDate);
+    setSemesterStartDate(getDaysAgo(30, validNewDate)); 
+  };
+  
 
-  // --- ฟังก์ชัน Export (✨ [แก้ไข] เพื่อแนบ Token) ---
-  const handleExport = async (format: 'pdf' | 'png' | 'summary_xlsx' | 'raw_logs_xlsx') => {
+  // --- ✨ [ฟังก์ชัน Export ที่แก้ไขใหม่] ✨ ---
+  // เราจะรับแค่ 'pdf', 'png', และ 'dashboard_data'
+  const handleExport = async (format: 'pdf' | 'png' | 'dashboard_data') => {
     setShowExportMenu(false);
     
-    // (ส่วน PDF/PNG เหมือนเดิม เพราะทำงานฝั่ง Client)
+    // (ส่วน PDF/PNG - เหมือนเดิม)
     if (format === 'pdf' || format === 'png') {
       if (!contentAreaRef.current) { alert("Error: Cannot find dashboard content."); return; }
       console.log(`Exporting visual as ${format}...`);
       setIsExporting(true);
       try {
-        const canvas = await html2canvas(contentAreaRef.current, { useCORS: true, scale: 2, });
+        const canvas = await html2canvas(contentAreaRef.current, { 
+          useCORS: true, 
+          scale: 2,
+          backgroundColor: '#ffffff'
+        });
         const imgData = canvas.toDataURL('image/png');
         if (format === 'png') {
           const link = document.createElement('a');
-          link.download = `faculty_report_${selectedSubject}.png`;
+          link.download = `faculty_report_${selectedSubject}_${selectedDate}.png`;
           link.href = imgData;
           link.click();
         } 
         else if (format === 'pdf') {
           const pdf = new jsPDF('p', 'mm', 'a4');
-          // ... (โค้ด PDF เหมือนเดิม)
           const pdfWidth = pdf.internal.pageSize.getWidth();
           const pdfHeight = pdf.internal.pageSize.getHeight();
           const canvasWidth = canvas.width;
@@ -353,58 +365,32 @@ const FacultyDashboardPage = () => {
           } else {
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfImgHeight);
           }
-          pdf.save(`faculty_report_${selectedSubject}.pdf`);
+          pdf.save(`faculty_report_${selectedSubject}_${selectedDate}.pdf`);
         }
       } catch (err) { console.error("Failed to create visual export:", err); alert("Failed to create visual export.");
       } finally { setIsExporting(false); }
       return;
     }
     
-    // (ตรวจสอบ account ก่อน)
     if (accounts.length === 0) {
       alert("Please log in again to export data.");
       return;
     }
-
-    if (format === 'raw_logs_xlsx') {
-      console.log(`Exporting all raw logs as XLSX...`);
-      setIsExporting(true);
-      try {
-        const accessToken = await getAuthToken(instance, accounts[0]);
-        const headers = { "Authorization": `Bearer ${accessToken}` };
-        
-        const params = new URLSearchParams();
-        params.append("format", "xlsx");
-        const url = `${BACKEND_URL}/attendance/export?${params.toString()}`;
-        
-        // (เราจะไม่ใช้ link.href = url อีกต่อไป)
-        const response = await fetch(url, { headers });
-        if (!response.ok) throw new Error(`Export failed: ${response.statusText}`);
-
-        // (สร้าง Blob เพื่อดาวน์โหลด)
-        const blob = await response.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = downloadUrl;
-        link.download = `attendance_export_${new Date().toISOString().split('T')[0]}.xlsx`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(downloadUrl);
-        
-      } catch (err: any) { console.error("Export failed:", err); alert(`Export failed: ${err.message}`); 
-      } finally { setIsExporting(false); }
-      return;
-    }
     
-    if (format === 'summary_xlsx') {
-      if (!semesterData || !sessionData) { alert("Data is not fully loaded. Cannot export summary."); return; }
-      console.log('Exporting summary data as XLSX...');
+    // --- ✨ [ปุ่ม Export ข้อมูลสรุป Dashboard] ---
+    // (นี่คือปุ่มที่ export ข้อมูลตามที่คุณ list มาทั้งหมด)
+    if (format === 'dashboard_data') {
+      if (!semesterData || !sessionData) { 
+        alert("Data is not fully loaded. Cannot export dashboard data."); 
+        return; 
+      }
+      console.log('Exporting Dashboard Data (Summary) as XLSX...');
       setIsExporting(true);
       try {
-        // (ส่วนนี้ทำงานฝั่ง Client ไม่ต้องใช้ Token)
         const wb = utils.book_new();
-        // ... (โค้ดสร้าง Excel sheet เหมือนเดิม)
+        
+        // --- ส่วน Semester ---
+        // 1. Semester KPIs (พฤติกรรมการเข้าเรียน)
         const ws_sem_kpi = utils.json_to_sheet([
           { "Metric": "Total Roster", "Value": semesterData.kpis.totalRoster, "Unit": "คน" },
           { "Metric": "Avg. Attendance", "Value": semesterData.kpis.avgAttendance, "Unit": "%" },
@@ -413,6 +399,7 @@ const FacultyDashboardPage = () => {
         ]);
         utils.book_append_sheet(wb, ws_sem_kpi, "Semester KPIs");
         
+        // 2. Semester Trend (ร้อยละของจำนวนนักศึกษา...)
         const sem_trend_data = semesterData.trendGraph.labels.map((label, index) => ({
           "Session": label,
           "Present (%)": semesterData.trendGraph.datasets[0].data[index],
@@ -422,18 +409,22 @@ const FacultyDashboardPage = () => {
         const ws_sem_trend = utils.json_to_sheet(sem_trend_data);
         utils.book_append_sheet(wb, ws_sem_trend, "Semester Trend");
         
+        // 3. Students Late (นักศึกษาที่มาสาย)
         const ws_sem_late = utils.json_to_sheet(semesterData.studentsLate.map(s => ({
             "Student ID": s.studentId, "Name": s.name,
             "Lates (Count)": s.lates_count, "LATES (%)": s.lates_percent,
         })));
         utils.book_append_sheet(wb, ws_sem_late, "Students Late");
 
+        // 4. Students Absent (นักศึกษาที่ขาดเรียน)
         const ws_sem_absent = utils.json_to_sheet(semesterData.studentsAbsent.map(s => ({
             "Student ID": s.studentId, "Name": s.name,
             "Absences (Count)": s.absences_count, "Absences (%)": s.absences_percent,
         })));
         utils.book_append_sheet(wb, ws_sem_absent, "Students Absent");
 
+        // --- ส่วน Session ---
+        // 5. Session KPIs (สรุปรายคาบ)
         const ws_ses_kpi = utils.json_to_sheet([
           { "Metric": "Date", "Value": selectedDate },
           { "Metric": "Present", "Value": sessionData.kpis.present },
@@ -442,7 +433,16 @@ const FacultyDashboardPage = () => {
           { "Metric": "Total", "Value": sessionData.kpis.total },
         ]);
         utils.book_append_sheet(wb, ws_ses_kpi, "Session KPIs");
+
+        // 6. Session Summary (สรุปการเข้าเรียน)
+        const ses_donut_data = sessionData.summaryDonut.labels.map((label, index) => ({
+          "Status": label,
+          "Count": sessionData.summaryDonut.datasets[0].data[index]
+        }));
+        const ws_ses_donut = utils.json_to_sheet(ses_donut_data);
+        utils.book_append_sheet(wb, ws_ses_donut, "Session Summary");
         
+        // 7. Session Arrival (ช่วงเวลาที่เข้าห้องเรียน)
         const ses_arrival_data = sessionData.arrivalHistogram.labels.map((label, index) => ({
           "Time": label,
           "Student Count": sessionData.arrivalHistogram.datasets[0].data[index] 
@@ -450,18 +450,21 @@ const FacultyDashboardPage = () => {
         const ws_ses_arrival = utils.json_to_sheet(ses_arrival_data);
         utils.book_append_sheet(wb, ws_ses_arrival, "Session Arrival (Count)");
 
+        // 8. Session Live Table (รายชื่อการเข้าเรียน)
         const ws_ses_live = utils.json_to_sheet(sessionData.liveDataTable);
         utils.book_append_sheet(wb, ws_ses_live, "Session Live Table");
         
-        writeFile(wb, `Faculty_Summary_${selectedSubject}_${selectedDate}.xlsx`);
+        writeFile(wb, `Faculty_Dashboard_Data_${selectedSubject}_${selectedDate}.xlsx`);
       } catch (err) { console.error("Failed to create summary export:", err); alert("Failed to create summary export.");
       } finally { setIsExporting(false); }
       return;
     }
+    
+    // (ลบส่วนของ 'raw_logs' ออกไปจากฟังก์ชันนี้)
   };
 
 
-  // --- Render (✨ [แก้ไข] กราฟ Line) ---
+  // --- ✨ [ส่วน Render ที่แก้ไขเมนู] ---
   return (
     <div className={styles.pageContainer}>
       
@@ -485,8 +488,8 @@ const FacultyDashboardPage = () => {
                 <button onClick={() => handleExport('pdf')}>Export Visual as .pdf</button>
                 <button onClick={() => handleExport('png')}>Export Visual as .png</button>
                 <hr className={styles.menuSeparator} />
-                <button onClick={() => handleExport('summary_xlsx')}>Export Summary as .xlsx</button>
-                <button onClick={() => handleExport('raw_logs_xlsx')}>Export Raw Logs as .xlsx</button>
+                <button onClick={() => handleExport('dashboard_data')}>Export Dashboard Data (.xlsx)</button>
+                {/* (ลบปุ่ม Raw Log ที่สับสนทิ้งไป) */}
               </div>
             )}
           </div>
@@ -499,7 +502,6 @@ const FacultyDashboardPage = () => {
             <ChevronDown size={16} /> วิชา (Subject):
           </label>
           <select id="subject-select" value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)} >
-            {/* ✨ [แก้ไข] เพิ่ม option เริ่มต้น */}
             <option value="" disabled>Loading subjects...</option>
             {subjects.map(subject => (
               <option key={subject.id} value={subject.id}>{subject.name}</option>
@@ -511,7 +513,13 @@ const FacultyDashboardPage = () => {
           <label htmlFor="date-picker">
             <Calendar size={16} /> วันที่ (Date):
           </label>
-          <input type="date" id="date-picker" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+          {/* (ใช้ Handler ที่เชื่อมโยงฟิลเตอร์) */}
+          <input 
+            type="date" 
+            id="date-picker" 
+            value={selectedDate} 
+            onChange={(e) => handleSessionDateChange(e.target.value)} 
+          />
         </div>
       </div>
 
@@ -597,7 +605,7 @@ const FacultyDashboardPage = () => {
         
         <hr className={styles.sectionSeparator} />
 
-        {/* === 3. พฤติกรรมการเข้าเรียน (Semester) === */}
+        {/* === 3. พฤติกรรมการเข้าเรียน (Attendance Behavior) === */}
         <section>
           <h2 className={styles.sectionTitle}>พฤติกรรมการเข้าเรียน (Attendance Behavior)</h2>
           
@@ -606,6 +614,7 @@ const FacultyDashboardPage = () => {
               <label htmlFor="semester-start-date">
                 <Calendar size={16} /> เริ่ม (Semester):
               </label>
+              {/* (ฟิลเตอร์นี้จะถูกควบคุมโดย State ที่เชื่อมกับฟิลเตอร์หลัก) */}
               <input type="date" id="semester-start-date" value={semesterStartDate} onChange={(e) => setSemesterStartDate(e.target.value)} />
             </div>
             <div className={styles.filterGroup}>

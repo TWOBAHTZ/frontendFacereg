@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, FormEvent, useCallback } from 'reac
 import { Settings, Plus, Trash2, X, UploadCloud, Image as ImageIcon, Loader2 } from 'lucide-react';
 import styles from './liststudent.module.css';
 
-// ✨ [ใหม่] 1. Import MSAL และ Helper
+// ✨ 1. Import MSAL และ Helper
 import { useMsal } from "@azure/msal-react";
 import { getAuthToken } from "../../authConfig";
 
@@ -26,7 +26,6 @@ interface User {
   subject_id: number | null;
 }
 
-// (Interface Subject ของคุณถูกต้องแล้ว)
 interface Subject {
   subject_id: number;
   subject_name: string;
@@ -82,7 +81,6 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, onDelete, onEdit }) 
 
 
 // --- Component: AddStudentModal ---
-// (✨ [แก้ไข] เพิ่ม Token ใน handleSubmit)
 interface AddStudentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -90,7 +88,7 @@ interface AddStudentModalProps {
   subjects: Subject[];
 }
 const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onStudentAdded, subjects }) => {
-  // ✨ [ใหม่] 2. เรียกใช้ useMsal ใน Modal
+  // (โค้ดส่วนนี้ถูกต้องแล้ว เพราะใช้ Token และ subjects ที่ส่งเข้ามา)
   const { instance, accounts } = useMsal();
 
   const [name, setName] = useState('');
@@ -103,7 +101,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
   const resetForm = useCallback(() => {
-    // ... (โค้ด resetForm เหมือนเดิม)
     setName(''); setStudentCode(''); setSubjectId(''); setFiles([]);
     setError(''); setIsSubmitting(false);
     previewUrls.forEach(url => URL.revokeObjectURL(url));
@@ -116,7 +113,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
   }, [isOpen, resetForm, previewUrls]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // ... (โค้ด handleFileChange เหมือนเดิม)
     if (event.target.files) {
       const selectedFiles = Array.from(event.target.files);
       if (files.length + selectedFiles.length > 50) {
@@ -130,7 +126,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
   };
 
   const removeFile = (index: number) => {
-    // ... (โค้ด removeFile เหมือนเดิม)
     setFiles(prev => prev.filter((_, i) => i !== index));
     const urlToRemove = previewUrls[index];
     URL.revokeObjectURL(urlToRemove);
@@ -144,7 +139,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
     if (!studentCode.trim()) { setError('กรุณากรอกรหัสนักศึกษา'); return; }
     if (files.length < 4) { setError('กรุณาอัปโหลดรูปภาพอย่างน้อย 4 รูป'); return; }
 
-    // ✨ [ใหม่] 3. ตรวจสอบ Token
     if (accounts.length === 0) {
       setError("Not logged in.");
       return;
@@ -153,7 +147,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
     setIsSubmitting(true);
     
     try {
-      // ✨ [ใหม่] 4. ดึง Token
       const accessToken = await getAuthToken(instance, accounts[0]);
 
       // (API 1: สร้าง User)
@@ -161,7 +154,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}` // (เพิ่ม Token)
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
           name,
@@ -184,7 +177,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
       const uploadResponse = await fetch(`${BACKEND_URL}/faces/upload`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}` // (เพิ่ม Token)
+          'Authorization': `Bearer ${accessToken}`
         },
         body: uploadFormData,
       });
@@ -194,7 +187,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
       await fetch(`${BACKEND_URL}/train/refresh`, { 
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}` // (เพิ่ม Token)
+          'Authorization': `Bearer ${accessToken}`
         }
       });
       
@@ -233,6 +226,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
               disabled={isSubmitting}
             >
               <option value="">-- Assign to a Subject --</option>
+              {/* (โค้ดนี้ถูกต้องแล้ว มันจะทำงานเมื่อ 'subjects' มีข้อมูล) */}
               {subjects.map(s => (
                 <option key={s.subject_id} value={s.subject_id}>
                   {s.academic_year ? `[${s.academic_year}] ` : ''}
@@ -269,7 +263,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
 };
 
 // --- Component: EditStudentModal ---
-// (✨ [แก้ไข] เพิ่ม Token ใน handleDeleteExistingFace และ handleSave)
 interface EditStudentModalProps {
   student: User | null;
   isOpen: boolean;
@@ -278,9 +271,9 @@ interface EditStudentModalProps {
   subjects: Subject[];
 }
 const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, onClose, onStudentUpdated, subjects }) => {
+  // (โค้ดส่วนนี้ถูกต้องแล้ว เพราะใช้ Token และ subjects ที่ส่งเข้ามา)
   if (!student) return null;
 
-  // ✨ [ใหม่] 5. เรียกใช้ useMsal ใน Modal
   const { instance, accounts } = useMsal();
   
   const [name, setName] = useState('');
@@ -310,7 +303,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
   }, [newPreviewUrls]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // ... (โค้ด handleFileChange เหมือนเดิม)
     if (event.target.files) {
       const selectedFiles = Array.from(event.target.files);
       if (existingFaces.length + newFiles.length + selectedFiles.length > 50) {
@@ -324,7 +316,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
   };
 
   const removeNewFile = (index: number) => {
-    // ... (โค้ด removeNewFile เหมือนเดิม)
     setNewFiles(prev => prev.filter((_, i) => i !== index));
     URL.revokeObjectURL(newPreviewUrls[index]);
     setNewPreviewUrls(prev => prev.filter((_, i) => i !== index));
@@ -335,19 +326,17 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
     if (existingFaces.length + newFiles.length <= 4) {
       setError(`ต้องมีรูปภาพอย่างน้อย 4 รูป (ห้ามลบ)`); return;
     }
-    // ✨ [ใหม่] 6. ตรวจสอบ Token
     if (accounts.length === 0) {
       setError("Not logged in."); return;
     }
     
     try {
-      // ✨ [ใหม่] 7. ดึง Token
       const accessToken = await getAuthToken(instance, accounts[0]);
       
       const res = await fetch(`${BACKEND_URL}/faces/${faceId}`, { 
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${accessToken}` // (เพิ่ม Token)
+          'Authorization': `Bearer ${accessToken}`
         }
       });
       if (!res.ok) throw new Error('Failed to delete');
@@ -366,7 +355,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
     if (!name.trim()) { setError('กรุณากรอกชื่อนักศึกษา'); return; }
     if (!studentCode.trim()) { setError('กรุณากรอกรหัสนักศึกษา'); return; }
     
-    // ✨ [ใหม่] 8. ตรวจสอบ Token
     if (accounts.length === 0) {
       setError("Not logged in."); return;
     }
@@ -374,7 +362,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
     setIsSubmitting(true);
     
     try {
-      // ✨ [ใหม่] 9. ดึง Token
       const accessToken = await getAuthToken(instance, accounts[0]);
       
       const infoChanged =
@@ -391,7 +378,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
           method: 'PUT', 
           headers: { 
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}` // (เพิ่ม Token)
+            'Authorization': `Bearer ${accessToken}`
           },
           body: JSON.stringify({
             name,
@@ -412,7 +399,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
         const res = await fetch(`${BACKEND_URL}/faces/upload`, { 
           method: 'POST', 
           headers: {
-            'Authorization': `Bearer ${accessToken}` // (เพิ่ม Token)
+            'Authorization': `Bearer ${accessToken}`
           },
           body: formData 
         });
@@ -425,7 +412,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
         await fetch(`${BACKEND_URL}/train/refresh`, { 
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}` // (เพิ่ม Token)
+            'Authorization': `Bearer ${accessToken}`
           }
         });
       }
@@ -454,6 +441,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
               disabled={isSubmitting}
             >
               <option value="">-- Assign to a Subject --</option>
+              {/* (โค้ดนี้ถูกต้องแล้ว มันจะทำงานเมื่อ 'subjects' มีข้อมูล) */}
               {subjects.map(s => (
                 <option key={s.subject_id} value={s.subject_id}>
                   {s.academic_year ? `[${s.academic_year}] ` : ''}
@@ -494,9 +482,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
 };
 
 // --- Page Component ---
-// (✨ [แก้ไข] เพิ่ม Token ใน fetchStudents, fetchSubjects, handleDelete)
 const ListStudentPage = () => {
-  // ✨ [ใหม่] 10. เรียกใช้ useMsal ในหน้าหลัก
   const { instance, accounts } = useMsal();
 
   const [students, setStudents] = useState<User[]>([]);
@@ -506,14 +492,13 @@ const ListStudentPage = () => {
   const [editingStudent, setEditingStudent] = useState<User | null>(null);
 
   const fetchStudents = useCallback(async () => {
-    // ✨ [ใหม่] 11. ตรวจสอบ Token
     if (accounts.length === 0) return;
     
     try {
       const accessToken = await getAuthToken(instance, accounts[0]);
       const headers = { 'Authorization': `Bearer ${accessToken}` };
       
-      const res = await fetch(`${BACKEND_URL}/users`, { headers }); // (เพิ่ม headers)
+      const res = await fetch(`${BACKEND_URL}/users`, { headers });
       if (!res.ok) throw new Error('Failed to fetch students');
       
       setStudents(await res.json());
@@ -521,18 +506,18 @@ const ListStudentPage = () => {
       console.error(err); 
       setStudents([]);
     }
-  }, [instance, accounts]); // ✨ [ใหม่] 12. เพิ่ม dependencies
+  }, [instance, accounts]); 
 
   const fetchSubjects = useCallback(async () => {
-    // ✨ [ใหม่] 13. ตรวจสอบ Token
     if (accounts.length === 0) return;
     
     try {
       const accessToken = await getAuthToken(instance, accounts[0]);
       const headers = { 'Authorization': `Bearer ${accessToken}` };
       
-      // ✨ [แก้ไข] 14. แก้ URL ให้ตรงกับ API ที่เราป้องกันไว้
-      const res = await fetch(`${BACKEND_URL}/api/faculty/subjects`, { headers });
+      // ✨ [นี่คือจุดแก้ไข] ✨
+      // เปลี่ยนจาก /api/faculty/subjects เป็น /subjects
+      const res = await fetch(`${BACKEND_URL}/subjects`, { headers });
       if (!res.ok) throw new Error('Failed to fetch subjects');
       
       setSubjects(await res.json());
@@ -540,23 +525,22 @@ const ListStudentPage = () => {
       console.error(err); 
       setSubjects([]);
     }
-  }, [instance, accounts]); // ✨ [ใหม่] 15. เพิ่ม dependencies
+  }, [instance, accounts]); 
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([
-        fetchStudents(),
-        fetchSubjects()
-      ]);
-      setIsLoading(false);
+      // (รอให้ accounts พร้อมก่อน)
+      if (accounts.length > 0) {
+        await Promise.all([
+          fetchStudents(),
+          fetchSubjects()
+        ]);
+        setIsLoading(false);
+      }
     };
-    
-    // ✨ [ใหม่] 16. รอให้ accounts พร้อมก่อน
-    if (accounts.length > 0) {
-      loadData();
-    }
-  }, [fetchStudents, fetchSubjects, accounts]); // ✨ [ใหม่] 17. เพิ่ม dependency
+    loadData();
+  }, [fetchStudents, fetchSubjects, accounts]); 
 
   const handleDataUpdated = () => {
     fetchStudents();
@@ -566,19 +550,17 @@ const ListStudentPage = () => {
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Delete "${name}"?`)) return;
     
-    // ✨ [ใหม่] 18. ตรวจสอบ Token
     if (accounts.length === 0) {
       alert("Not logged in."); return;
     }
     
     try {
-      // ✨ [ใหม่] 19. ดึง Token
       const accessToken = await getAuthToken(instance, accounts[0]);
       
       const res = await fetch(`${BACKEND_URL}/users/${id}`, { 
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${accessToken}` // (เพิ่ม Token)
+          'Authorization': `Bearer ${accessToken}`
         }
       });
       if (!res.ok) throw new Error('Failed to delete');
@@ -588,10 +570,6 @@ const ListStudentPage = () => {
 
   return (
     <div className={styles.pageContainer}>
-      {/* Modal จะถูก Render ที่นี่
-        และเนื่องจาก Modal เรียกใช้ useMsal() ด้วยตัวเอง
-        มันจะสามารถดึง Token ได้อย่างถูกต้อง
-      */}
       <AddStudentModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onStudentAdded={handleDataUpdated} subjects={subjects} />
       <EditStudentModal isOpen={!!editingStudent} onClose={() => setEditingStudent(null)} student={editingStudent} onStudentUpdated={handleDataUpdated} subjects={subjects} />
 

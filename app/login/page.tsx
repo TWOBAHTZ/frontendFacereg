@@ -1,21 +1,13 @@
 'use client'; 
 
-import React, { useEffect } from 'react'; // ✨ [แก้ไข] 1. Import useEffect
+import React, { useEffect } from 'react';
 import styles from './login.module.css';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
-// ✨ [แก้ไข] 2. Import MsalProvider
 import { useMsal, useIsAuthenticated, MsalProvider } from "@azure/msal-react"; 
-
-// ✨ [แก้ไข] 3. Import msalInstance ที่แชร์กัน
 import { msalInstance } from '../authConfig'; 
-
-// ❌ [ลบ] 4. ลบการสร้าง instance ใหม่ออก
-// import { PublicClientApplication } from "@azure/msal-browser";
-// import { msalConfig } from '../../authConfig';
-// const msalInstance = new PublicClientApplication(msalConfig);
 
 const LoginPageContent = () => {
   const router = useRouter();
@@ -25,16 +17,23 @@ const LoginPageContent = () => {
   const handleLogin = async () => {
     try {
       const loginResponse = await instance.loginPopup({
-        scopes: ["api://af39ad67-ec03-4cbd-88f3-762dd7a58dfe/access_as_user"]
+        scopes: ["api://af39ad67-ec03-4cbd-88f3-762dd7a58dfe/access_as_user"],
+        
+        // ✨ [นี่คือจุดที่แก้ไข] ✨
+        // บังคับให้ Microsoft แสดงหน้าจอ "เลือกบัญชี"
+        // ผู้ใช้สามารถเลือกบัญชีที่ Login ค้างไว้
+        // หรือกด "Use another account" เพื่อพิมพ์อีเมล/รหัสผ่านใหม่ได้
+        prompt: "select_account" 
       });
+      
       console.log("Login successful:", loginResponse);
       router.push('/accesscontrol'); 
+
     } catch (error) {
       console.error("Login failed:", error);
     }
   };
 
-  // ✨ [แก้ไข] 5. ย้าย redirect เข้าไปใน useEffect (แก้ Warning)
   useEffect(() => {
     if (isAuthenticated) {
       router.push('/accesscontrol');
@@ -42,7 +41,6 @@ const LoginPageContent = () => {
   }, [isAuthenticated, router]);
 
   if (isAuthenticated) {
-    // แค่แสดง loading, ไม่ต้อง redirect ที่นี่
     return (
       <div className={styles.container}>
         <p>Authenticated. Redirecting...</p>
@@ -50,7 +48,6 @@ const LoginPageContent = () => {
     );
   }
 
-  // (UI ที่เหลือเหมือนเดิม)
   return (
     <div className={styles.container}>
       <div className={styles.loginBox}>
@@ -99,7 +96,6 @@ const LoginPageContent = () => {
 // --- (ส่วนหุ้ม MsalProvider) ---
 const LoginPage = () => {
   return (
-    // ✨ [แก้ไข] 6. ใช้ msalInstance ที่ import เข้ามา
     <MsalProvider instance={msalInstance}>
       <LoginPageContent />
     </MsalProvider>
