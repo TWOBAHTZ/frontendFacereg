@@ -386,3 +386,17 @@
     border-color: #3b82f6;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
+
+/* (เพิ่มโค้ดนี้ที่ท้ายไฟล์ liststudent.module.css) */
+
+.studentSubject {
+  font-size: 0.8rem;            /* ขนาดตัวอักษรเล็ก */
+  font-weight: 500;
+  color: #1d4ed8;               /* สีน้ำเงินเข้ม */
+  background-color: #dbeafe;    /* สีพื้นหลัง (น้ำเงินอ่อน) */
+  padding: 0.15rem 0.6rem;      /* ระยะห่างภายใน */
+  border-radius: 9999px;        /* ทำให้ขอบโค้งมน (badge) */
+  display: inline-block;        /* ทำให้ขนาดพอดีกับข้อความ */
+  align-self: flex-start;       /* จัดให้ชิดซ้าย */
+  margin-top: 0.25rem;          /* เว้นระยะห่างจาก ID */
+}

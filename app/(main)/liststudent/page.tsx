@@ -1,14 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useRef, FormEvent, useCallback } from 'react';
+// (✨ [แก้ไข] 1. Import 'useMemo' เพิ่ม)
+import React, { useState, useEffect, useRef, FormEvent, useCallback, useMemo } from 'react';
 import { Settings, Plus, Trash2, X, UploadCloud, Image as ImageIcon, Loader2 } from 'lucide-react';
 import styles from './liststudent.module.css';
 
-// ✨ 1. Import MSAL และ Helper
 import { useMsal } from "@azure/msal-react";
 import { getAuthToken } from "../../authConfig";
 
-// URL ของ Backend (FastAPI)
 const BACKEND_URL = 'http://localhost:8000';
 
 // --- Interfaces ---
@@ -34,13 +33,13 @@ interface Subject {
 }
 
 // --- Component: StudentCard ---
-// (StudentCard ไม่มีการ fetch, ไม่ต้องแก้ไข)
 interface StudentCardProps {
   student: User;
   onDelete: (userId: number, name: string) => void;
   onEdit: (student: User) => void;
+  subjectName: string | null; // ✨ [แก้ไข] 2. เพิ่ม Prop นี้
 }
-const StudentCard: React.FC<StudentCardProps> = ({ student, onDelete, onEdit }) => {
+const StudentCard: React.FC<StudentCardProps> = ({ student, onDelete, onEdit, subjectName }) => {
   const gridFaces = student.faces.slice(0, 4);
   const placeholders = new Array(Math.max(0, 4 - gridFaces.length)).fill(null);
 
@@ -71,9 +70,13 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, onDelete, onEdit }) 
         ))}
       </div>
 
+      {/* ✨ [แก้ไข] 3. เพิ่มการแสดงผล Subject Name */}
       <div className={styles.studentInfo}>
-        <span className={styles.studentId}>{student.student_code || 'N/A'}</span>
         <span className={styles.studentName}>{student.name}</span>
+        <span className={styles.studentId}>{student.student_code || 'N/A'}</span>
+        <span className={styles.studentSubject}>
+          {subjectName || 'No Subject Assigned'}
+        </span>
       </div>
     </div>
   );
@@ -88,7 +91,7 @@ interface AddStudentModalProps {
   subjects: Subject[];
 }
 const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onStudentAdded, subjects }) => {
-  // (โค้ดส่วนนี้ถูกต้องแล้ว เพราะใช้ Token และ subjects ที่ส่งเข้ามา)
+  // (โค้ดส่วนนี้ถูกต้องแล้ว ไม่ต้องแก้ไข)
   const { instance, accounts } = useMsal();
 
   const [name, setName] = useState('');
@@ -149,7 +152,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
     try {
       const accessToken = await getAuthToken(instance, accounts[0]);
 
-      // (API 1: สร้าง User)
       const userResponse = await fetch(`${BACKEND_URL}/users`, {
         method: 'POST',
         headers: { 
@@ -169,7 +171,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
       }
       const newUserResult = await userResponse.json();
       
-      // (API 2: อัปโหลดรูป)
       const uploadFormData = new FormData();
       uploadFormData.append('user_id', newUserResult.user.user_id.toString());
       files.forEach((file) => uploadFormData.append('images', file));
@@ -183,7 +184,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
       });
       if (!uploadResponse.ok) throw new Error('Failed to upload images.');
 
-      // (API 3: Train)
       await fetch(`${BACKEND_URL}/train/refresh`, { 
         method: 'POST',
         headers: {
@@ -208,7 +208,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
         <button className={styles.closeButton} onClick={onClose}><X size={20} /></button>
         <h2>Add New Student</h2>
         <form onSubmit={handleSubmit} className={styles.modalForm}>
-          {/* (UI Form เหมือนเดิม) */}
           <div className={styles.formGroup}>
             <label>Student ID</label>
             <input type="text" value={studentCode} onChange={(e) => /^[0-9]*$/.test(e.target.value) && setStudentCode(e.target.value)} inputMode="numeric" disabled={isSubmitting} />
@@ -226,7 +225,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
               disabled={isSubmitting}
             >
               <option value="">-- Assign to a Subject --</option>
-              {/* (โค้ดนี้ถูกต้องแล้ว มันจะทำงานเมื่อ 'subjects' มีข้อมูล) */}
               {subjects.map(s => (
                 <option key={s.subject_id} value={s.subject_id}>
                   {s.academic_year ? `[${s.academic_year}] ` : ''}
@@ -271,7 +269,7 @@ interface EditStudentModalProps {
   subjects: Subject[];
 }
 const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, onClose, onStudentUpdated, subjects }) => {
-  // (โค้ดส่วนนี้ถูกต้องแล้ว เพราะใช้ Token และ subjects ที่ส่งเข้ามา)
+  // (โค้ดส่วนนี้ถูกต้องแล้ว ไม่ต้องแก้ไข)
   if (!student) return null;
 
   const { instance, accounts } = useMsal();
@@ -373,7 +371,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
       let needsTrain = false;
 
       if (infoChanged) {
-        // (API 1: อัปเดต User)
         const res = await fetch(`${BACKEND_URL}/users/${student.user_id}`, {
           method: 'PUT', 
           headers: { 
@@ -391,7 +388,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
       }
       
       if (newFiles.length > 0) {
-        // (API 2: อัปโหลดรูปใหม่)
         const formData = new FormData();
         formData.append('user_id', student.user_id.toString());
         newFiles.forEach(f => formData.append('images', f));
@@ -408,7 +404,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
       }
       
       if (needsTrain) {
-        // (API 3: Train)
         await fetch(`${BACKEND_URL}/train/refresh`, { 
           method: 'POST',
           headers: {
@@ -429,7 +424,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
         <button className={styles.closeButton} onClick={onClose}><X size={20} /></button>
         <h2>Edit Student</h2>
         <form onSubmit={handleSave} className={styles.modalForm}>
-          {/* (UI Form เหมือนเดิม) */}
           <div className={styles.formGroup}><label>Student ID</label><input type="text" value={studentCode} onChange={e => /^[0-9]*$/.test(e.target.value) && setStudentCode(e.target.value)} disabled={isSubmitting} /></div>
           <div className={styles.formGroup}><label>Name</label><input type="text" value={name} onChange={e => setName(e.target.value)} disabled={isSubmitting} /></div>
           <div className={styles.formGroup}>
@@ -441,7 +435,6 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
               disabled={isSubmitting}
             >
               <option value="">-- Assign to a Subject --</option>
-              {/* (โค้ดนี้ถูกต้องแล้ว มันจะทำงานเมื่อ 'subjects' มีข้อมูล) */}
               {subjects.map(s => (
                 <option key={s.subject_id} value={s.subject_id}>
                   {s.academic_year ? `[${s.academic_year}] ` : ''}
@@ -491,6 +484,17 @@ const ListStudentPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<User | null>(null);
 
+  // ✨ [แก้ไข] 4. สร้าง Subject Map (ตัวค้นหา)
+  const subjectMap = useMemo(() => {
+    const map = new Map<number, string>();
+    subjects.forEach(s => {
+      // สร้างชื่อที่แสดงผลแบบเต็ม
+      const displayName = `${s.academic_year ? `[${s.academic_year}] ` : ''}${s.subject_name}${s.section ? ` (Sec: ${s.section})` : ''}`;
+      map.set(s.subject_id, displayName);
+    });
+    return map;
+  }, [subjects]); // (จะคำนวณใหม่เมื่อ 'subjects' เปลี่ยน)
+
   const fetchStudents = useCallback(async () => {
     if (accounts.length === 0) return;
     
@@ -515,8 +519,7 @@ const ListStudentPage = () => {
       const accessToken = await getAuthToken(instance, accounts[0]);
       const headers = { 'Authorization': `Bearer ${accessToken}` };
       
-      // ✨ [นี่คือจุดแก้ไข] ✨
-      // เปลี่ยนจาก /api/faculty/subjects เป็น /subjects
+      // (โค้ดนี้ถูกต้องแล้ว ไม่ต้องแก้ API path)
       const res = await fetch(`${BACKEND_URL}/subjects`, { headers });
       if (!res.ok) throw new Error('Failed to fetch subjects');
       
@@ -530,7 +533,6 @@ const ListStudentPage = () => {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      // (รอให้ accounts พร้อมก่อน)
       if (accounts.length > 0) {
         await Promise.all([
           fetchStudents(),
@@ -583,7 +585,19 @@ const ListStudentPage = () => {
 
       <main className={styles.studentGrid}>
         {isLoading ? <p>Loading...</p> : students.length === 0 ? <p>No students found.</p> :
-          students.map(s => <StudentCard key={s.user_id} student={s} onDelete={handleDelete} onEdit={setEditingStudent} />)
+          // ✨ [แก้ไข] 5. ค้นหาชื่อ Subject และส่ง prop 'subjectName'
+          students.map(s => {
+            const subjectName = s.subject_id ? subjectMap.get(s.subject_id) || null : null;
+            return (
+              <StudentCard 
+                key={s.user_id} 
+                student={s} 
+                subjectName={subjectName} // (ส่ง prop ใหม่)
+                onDelete={handleDelete} 
+                onEdit={setEditingStudent} 
+              />
+            );
+          })
         }
       </main>
     </div>

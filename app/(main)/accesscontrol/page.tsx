@@ -139,7 +139,7 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSu
           {/* ... (UI ของ Form เหมือนเดิม) ... */}
           <div className={styles.formGroup}>
             <label htmlFor="academicYear">Academic Year <span style={{ color: '#ef4444' }}>*</span></label>
-            <input id="academicYear" type="text" value={academicYear} onChange={e => setAcademicYear(e.target.value)} placeholder="e.g. 2024-2025" disabled={isSubmitting} required />
+            <input id="academicYear" type="number" value={academicYear} onChange={e => setAcademicYear(e.target.value)} placeholder="e.g. 2024-2025" disabled={isSubmitting} required />
           </div>
           <div className={styles.formGroup}>
             <label htmlFor="subjectName">Subject Name <span style={{ color: '#ef4444' }}>*</span></label>
@@ -263,7 +263,7 @@ const SnapshotModal: React.FC<SnapshotModalProps> = ({ isOpen, onClose, imageUrl
   );
 };
 
-// (useAIResults Hook - เหมือนเดิม)
+// (useAIResults Hook)
 interface AIResult { name: string; box: [number, number, number, number]; similarity?: number | null; matched: boolean; display_name: string; }
 interface AIData { results: AIResult[]; ai_width: number; ai_height: number; }
 const useAIResults = (camId: string, streamKey: string) => {
@@ -286,7 +286,7 @@ const useAIResults = (camId: string, streamKey: string) => {
   return data;
 };
 
-// (CameraBox Component - เหมือนเดิม)
+// (CameraBox Component)
 interface CameraBoxProps { camId: 'entrance' | 'exit'; streamKey: string; onSettingsClick: () => void; }
 const CameraBox: React.FC<CameraBoxProps> = ({ camId, streamKey, onSettingsClick }) => {
   const [error, setError] = useState(false);

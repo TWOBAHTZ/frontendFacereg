@@ -511,6 +511,7 @@
     border: 1px solid #cbd5e1;
     border-radius: 0.5rem;
     font-size: 1rem;
+    color: #000000;
     background-color: #f9fafb; 
 }
 .formGroup input:focus {
@@ -554,4 +555,46 @@
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+/* --- [ใหม่] Delete Subject Modal List --- */
+.deleteListContainer {
+    margin-top: 1.5rem;
+    max-height: 300px; /* กำหนดความสูงสูงสุด */
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+}
+
+.deleteItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: #334155; /* ✨ [สำคัญ] ตั้งค่าสีตัวอักษรให้เข้ม */
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.deleteItem:last-child {
+    border-bottom: none;
+}
+
+.deleteIcon {
+    background: none;
+    border: none;
+    color: #ef4444; /* (สีแดง) */
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+.deleteIcon:hover:not(:disabled) {
+    background-color: #fee2e2;
+}
+
+.deleteIcon:disabled {
+    color: #94a3b8;
+    cursor: not-allowed;
 }
