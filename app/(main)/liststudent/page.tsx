@@ -1,12 +1,13 @@
 'use client';
 
-// (✨ [แก้ไข] 1. Import 'useMemo' เพิ่ม)
 import React, { useState, useEffect, useRef, FormEvent, useCallback, useMemo } from 'react';
 import { Settings, Plus, Trash2, X, UploadCloud, Image as ImageIcon, Loader2 } from 'lucide-react';
 import styles from './liststudent.module.css';
 
 import { useMsal } from "@azure/msal-react";
 import { getAuthToken } from "../../authConfig";
+
+import CapturePhotoModal from './capture-photo-modal'; 
 
 const BACKEND_URL = 'http://localhost:8000';
 
@@ -32,12 +33,13 @@ interface Subject {
   academic_year?: string | null;
 }
 
+
 // --- Component: StudentCard ---
 interface StudentCardProps {
   student: User;
   onDelete: (userId: number, name: string) => void;
   onEdit: (student: User) => void;
-  subjectName: string | null; // ✨ [แก้ไข] 2. เพิ่ม Prop นี้
+  subjectName: string | null; 
 }
 const StudentCard: React.FC<StudentCardProps> = ({ student, onDelete, onEdit, subjectName }) => {
   const gridFaces = student.faces.slice(0, 4);
@@ -70,7 +72,6 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, onDelete, onEdit, su
         ))}
       </div>
 
-      {/* ✨ [แก้ไข] 3. เพิ่มการแสดงผล Subject Name */}
       <div className={styles.studentInfo}>
         <span className={styles.studentName}>{student.name}</span>
         <span className={styles.studentId}>{student.student_code || 'N/A'}</span>
@@ -90,68 +91,128 @@ interface AddStudentModalProps {
   onStudentAdded: () => void;
   subjects: Subject[];
 }
+
 const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onStudentAdded, subjects }) => {
-  // (โค้ดส่วนนี้ถูกต้องแล้ว ไม่ต้องแก้ไข)
   const { instance, accounts } = useMsal();
 
   const [name, setName] = useState('');
   const [studentCode, setStudentCode] = useState('');
-  const [subjectId, setSubjectId] = useState<string>('');
-  const [files, setFiles] = useState<File[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | ''>('');
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // สถานะสำหรับ Modal ย่อย
+  const [isCaptureModalOpen, setIsCaptureModalOpen] = useState(false);
+  // ✨ [แก้ไข] เปลี่ยนจากตัวแปรเดียว เป็น List of Files
+  const [capturedImages, setCapturedImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  
+  // สถานะสำหรับ Auth Token
+  const [authToken, setAuthToken] = useState<string | null>(null);
+
 
   const resetForm = useCallback(() => {
-    setName(''); setStudentCode(''); setSubjectId(''); setFiles([]);
+    setName(''); setStudentCode(''); setSelectedSubjectId(''); setUploadedFiles([]);
+    // ✨ [แก้ไข] Reset capturedImages
+    setCapturedImages([]);
     setError(''); setIsSubmitting(false);
     previewUrls.forEach(url => URL.revokeObjectURL(url));
     setPreviewUrls([]);
+    setAuthToken(null);
   }, [previewUrls]);
 
   useEffect(() => {
-    if (!isOpen) { setTimeout(resetForm, 300); }
+    if (!isOpen) { 
+      setTimeout(resetForm, 300); 
+    } else if (accounts.length > 0) {
+      // ดึง Token เมื่อ Modal เปิด
+      getAuthToken(instance, accounts[0]).then(setAuthToken).catch(() => setAuthToken(null));
+    }
     return () => { previewUrls.forEach(url => URL.revokeObjectURL(url)); };
-  }, [isOpen, resetForm, previewUrls]);
+  }, [isOpen, resetForm, previewUrls, instance, accounts]);
+
+  const updateFilesAndPreviews = useCallback((newFiles: File[], newCapturedImages: File[]) => {
+    // ✨ [แก้ไข] รวมไฟล์ที่อัปโหลดและไฟล์ที่ถ่าย
+    const allFiles = [...newFiles, ...newCapturedImages];
+    
+    if (allFiles.length > 50) {
+      setError("สามารถอัปโหลดได้สูงสุด 50 รูป"); 
+      return false;
+    }
+    
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+
+    const allPreviews = allFiles.map(file => URL.createObjectURL(file));
+
+    setUploadedFiles(newFiles);
+    setCapturedImages(newCapturedImages);
+    setPreviewUrls(allPreviews);
+    setError('');
+    return true;
+  }, [previewUrls]);
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const selectedFiles = Array.from(event.target.files);
-      if (files.length + selectedFiles.length > 50) {
-        setError("สามารถอัปโหลดได้สูงสุด 50 รูป"); return;
-      }
-      setFiles(prev => [...prev, ...selectedFiles]);
-      const newUrls = selectedFiles.map(file => URL.createObjectURL(file));
-      setPreviewUrls(prev => [...prev, ...newUrls]);
-      setError('');
+      const newFiles = [...uploadedFiles, ...selectedFiles];
+      // ✨ [แก้ไข] ส่ง capturedImages เดิมเข้าไป
+      updateFilesAndPreviews(newFiles, capturedImages);
     }
   };
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
-    const urlToRemove = previewUrls[index];
-    URL.revokeObjectURL(urlToRemove);
-    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
-  };
+    let newFiles = [...uploadedFiles];
+    let newCapturedImages = [...capturedImages];
+    
+    const allFilesCount = uploadedFiles.length + capturedImages.length;
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (!name.trim()) { setError('กรุณากรอกชื่อนักศึกษา'); return; }
-    if (!studentCode.trim()) { setError('กรุณากรอกรหัสนักศึกษา'); return; }
-    if (files.length < 4) { setError('กรุณาอัปโหลดรูปภาพอย่างน้อย 4 รูป'); return; }
-
-    if (accounts.length === 0) {
-      setError("Not logged in.");
+    if (allFilesCount - 1 < 4) {
+      setError('ต้องมีรูปภาพอย่างน้อย 4 รูป');
       return;
     }
     
+    if (index < uploadedFiles.length) {
+      // กำจัดไฟล์ที่อัปโหลด
+      newFiles = newFiles.filter((_, i) => i !== index);
+    } else {
+      // กำจัดภาพที่ถ่าย (index ถูกปรับเทียบกับ List capturedImages)
+      const capturedIndex = index - uploadedFiles.length;
+      newCapturedImages = newCapturedImages.filter((_, i) => i !== capturedIndex);
+    }
+    
+    updateFilesAndPreviews(newFiles, newCapturedImages);
+  };
+
+
+  // ✨ [แก้ไข] Handler สำหรับภาพที่ถ่ายสำเร็จ (รับ File ใหม่)
+  const handleCapturedImage = useCallback((imageFile: File) => {
+    // เพิ่มภาพที่ถ่ายใหม่เข้าไปใน List เดิม
+    const newCapturedImages = [...capturedImages, imageFile]; 
+    updateFilesAndPreviews(uploadedFiles, newCapturedImages);
+    // Modal จะยังคงเปิดอยู่เพื่อให้ถ่ายต่อได้
+  }, [uploadedFiles, capturedImages, updateFilesAndPreviews]);
+  
+  
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    
+    // ✨ [แก้ไข] รวมไฟล์ทั้งหมด
+    const filesToUpload = [...uploadedFiles, ...capturedImages];
+    
+    if (!name.trim()) { setError('กรุณากรอกชื่อนักศึกษา'); return; }
+    if (!studentCode.trim()) { setError('กรุณากรอกรหัสนักศึกษา'); return; }
+    if (filesToUpload.length < 4) { setError('กรุณาอัปโหลดรูปภาพอย่างน้อย 4 รูป'); return; }
+    if (!authToken) { setError("Authentication token is missing. Please re-login."); return; }
+
     setIsSubmitting(true);
     
     try {
-      const accessToken = await getAuthToken(instance, accounts[0]);
+      const accessToken = authToken;
 
+      // 1. สร้าง User ก่อน (ส่งเป็น JSON)
       const userResponse = await fetch(`${BACKEND_URL}/users`, {
         method: 'POST',
         headers: { 
@@ -161,8 +222,8 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
         body: JSON.stringify({
           name,
           student_code: studentCode,
-          role: 'viewer',
-          subject_id: subjectId ? parseInt(subjectId, 10) : null
+          role: 'viewer', 
+          subject_id: selectedSubjectId ? Number(selectedSubjectId) : null
         }),
       });
       if (!userResponse.ok) {
@@ -170,10 +231,12 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
         throw new Error(errData.detail || 'Failed to create user.');
       }
       const newUserResult = await userResponse.json();
+      const newUserId = newUserResult.user.user_id;
       
+      // 2. อัปโหลดรูปภาพ (ใช้ FormData)
       const uploadFormData = new FormData();
-      uploadFormData.append('user_id', newUserResult.user.user_id.toString());
-      files.forEach((file) => uploadFormData.append('images', file));
+      uploadFormData.append('user_id', newUserId.toString());
+      filesToUpload.forEach((file) => uploadFormData.append('images', file));
 
       const uploadResponse = await fetch(`${BACKEND_URL}/faces/upload`, {
         method: 'POST',
@@ -184,6 +247,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
       });
       if (!uploadResponse.ok) throw new Error('Failed to upload images.');
 
+      // 3. สั่ง Train
       await fetch(`${BACKEND_URL}/train/refresh`, { 
         method: 'POST',
         headers: {
@@ -200,65 +264,112 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
     }
   };
 
+
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalBackdrop} onClick={onClose}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <button className={styles.closeButton} onClick={onClose}><X size={20} /></button>
-        <h2>Add New Student</h2>
-        <form onSubmit={handleSubmit} className={styles.modalForm}>
-          <div className={styles.formGroup}>
-            <label>Student ID</label>
-            <input type="text" value={studentCode} onChange={(e) => /^[0-9]*$/.test(e.target.value) && setStudentCode(e.target.value)} inputMode="numeric" disabled={isSubmitting} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} disabled={isSubmitting} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>Subject (Optional)</label>
-            <select
-              className={styles.controlSelect}
-              value={subjectId}
-              onChange={(e) => setSubjectId(e.target.value)}
-              disabled={isSubmitting}
-            >
-              <option value="">-- Assign to a Subject --</option>
-              {subjects.map(s => (
-                <option key={s.subject_id} value={s.subject_id}>
-                  {s.academic_year ? `[${s.academic_year}] ` : ''}
-                  {s.subject_name} {s.section ? `(Sec: ${s.section})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className={styles.formGroup}>
-            <label>Upload Images (Min 4)</label>
-            <div className={styles.fileDropArea} onClick={() => !isSubmitting && fileInputRef.current?.click()}>
-              <UploadCloud size={40} /><p>Click to upload</p><p>({files.length} selected)</p>
-            </div>
-            <input type="file" ref={fileInputRef} multiple accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} disabled={isSubmitting} />
-          </div>
-          {previewUrls.length > 0 && (
-            <div className={styles.imagePreviewContainer}>
-              {previewUrls.map((url, index) => (
-                <div key={index} className={styles.imagePreviewItem}>
-                  <img src={url} alt="Preview" />
-                  <button type="button" className={styles.removeImageButton} onClick={() => !isSubmitting && removeFile(index)}><X size={14} /></button>
+    <>
+      {/* 1. Modal ย่อยสำหรับ Capture Photo */}
+      <CapturePhotoModal 
+        isOpen={isCaptureModalOpen} 
+        onClose={() => setIsCaptureModalOpen(false)} 
+        onCapture={handleCapturedImage} 
+        authToken={authToken} 
+        camId="entrance" // ใช้ 'entrance' เป็น ID กล้องหลักในการควบคุม
+      />
+      
+      {/* 2. Modal หลักสำหรับ Add Student */}
+      {(isOpen && !isCaptureModalOpen) && ( 
+        <div className={styles.modalBackdrop} onClick={onClose}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeButton} onClick={onClose}><X size={20} /></button>
+            <h2>Add New Student</h2>
+
+            <form onSubmit={handleSubmit} className={styles.modalForm}>
+              
+              <div className={styles.formGroup}>
+                <label>Student ID</label>
+                <input type="text" value={studentCode} onChange={(e) => /^[0-9]*$/.test(e.target.value) && setStudentCode(e.target.value)} inputMode="numeric" disabled={isSubmitting} />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Name</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} disabled={isSubmitting} />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Subject (Optional)</label>
+                <select
+                  className={styles.controlSelect}
+                  value={selectedSubjectId}
+                  onChange={e => setSelectedSubjectId(e.target.value ? Number(e.target.value) : '')}
+                  disabled={isSubmitting}
+                >
+                  <option value="">-- Assign to a Subject --</option>
+                  {subjects.map(s => (
+                    <option key={s.subject_id} value={s.subject_id}>
+                      {s.academic_year ? `[${s.academic_year}] ` : ''}
+                      {s.subject_name} {s.section ? `(Sec: ${s.section})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className={styles.formGroup}>
+                <label>Upload Images (Min 4)</label>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  
+                  <button 
+                    type="button" 
+                    className={styles.settingsButton} 
+                    onClick={() => { 
+                      !isSubmitting && setIsCaptureModalOpen(true) 
+                    }}
+                    disabled={isSubmitting}
+                    style={{ flexGrow: 1, padding: '0.75rem' }}
+                  >
+                    <ImageIcon size={20} /><span>Capture Photo</span>
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    className={styles.settingsButton} 
+                    onClick={() => !isSubmitting && fileInputRef.current?.click()}
+                    disabled={isSubmitting}
+                    style={{ flexGrow: 1, padding: '0.75rem' }}
+                  >
+                    <UploadCloud size={20} /><span>Upload File</span>
+                  </button>
+                  <input type="file" ref={fileInputRef} multiple accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} disabled={isSubmitting} />
+
                 </div>
-              ))}
-            </div>
-          )}
-          {error && <p className={styles.errorText}>{error}</p>}
-          <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 size={20} className={styles.spinner} /> : 'Create Student'}
-          </button>
-        </form>
-      </div>
-    </div>
+                <p style={{ fontSize: '0.875rem', color: '#64748b' }}>({previewUrls.length} selected)</p>
+              </div>
+              
+              {previewUrls.length > 0 && (
+                <div className={styles.imagePreviewContainer}>
+                  {previewUrls.map((url, index) => (
+                    <div key={index} className={styles.imagePreviewItem}>
+                      <img src={url} alt="Preview" />
+                      <button type="button" className={styles.removeImageButton} onClick={() => !isSubmitting && removeFile(index)}><X size={14} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {error && <p className={styles.errorText}>{error}</p>}
+
+              <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 size={20} className={styles.spinner} /> : 'Create Student'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
+
 
 // --- Component: EditStudentModal ---
 interface EditStudentModalProps {
@@ -269,7 +380,6 @@ interface EditStudentModalProps {
   subjects: Subject[];
 }
 const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, onClose, onStudentUpdated, subjects }) => {
-  // (โค้ดส่วนนี้ถูกต้องแล้ว ไม่ต้องแก้ไข)
   if (!student) return null;
 
   const { instance, accounts } = useMsal();
@@ -338,8 +448,9 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({ student, isOpen, on
         }
       });
       if (!res.ok) throw new Error('Failed to delete');
-      setExistingFaces(prev => prev.filter(f => f.face_id !== faceId));
-      setError('');
+      
+      onStudentUpdated();
+      
     } catch (err: any) { setError(err.message); }
   };
 
@@ -484,16 +595,14 @@ const ListStudentPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<User | null>(null);
 
-  // ✨ [แก้ไข] 4. สร้าง Subject Map (ตัวค้นหา)
   const subjectMap = useMemo(() => {
     const map = new Map<number, string>();
     subjects.forEach(s => {
-      // สร้างชื่อที่แสดงผลแบบเต็ม
       const displayName = `${s.academic_year ? `[${s.academic_year}] ` : ''}${s.subject_name}${s.section ? ` (Sec: ${s.section})` : ''}`;
       map.set(s.subject_id, displayName);
     });
     return map;
-  }, [subjects]); // (จะคำนวณใหม่เมื่อ 'subjects' เปลี่ยน)
+  }, [subjects]); 
 
   const fetchStudents = useCallback(async () => {
     if (accounts.length === 0) return;
@@ -519,7 +628,6 @@ const ListStudentPage = () => {
       const accessToken = await getAuthToken(instance, accounts[0]);
       const headers = { 'Authorization': `Bearer ${accessToken}` };
       
-      // (โค้ดนี้ถูกต้องแล้ว ไม่ต้องแก้ API path)
       const res = await fetch(`${BACKEND_URL}/subjects`, { headers });
       if (!res.ok) throw new Error('Failed to fetch subjects');
       
@@ -585,14 +693,13 @@ const ListStudentPage = () => {
 
       <main className={styles.studentGrid}>
         {isLoading ? <p>Loading...</p> : students.length === 0 ? <p>No students found.</p> :
-          // ✨ [แก้ไข] 5. ค้นหาชื่อ Subject และส่ง prop 'subjectName'
           students.map(s => {
             const subjectName = s.subject_id ? subjectMap.get(s.subject_id) || null : null;
             return (
               <StudentCard 
                 key={s.user_id} 
                 student={s} 
-                subjectName={subjectName} // (ส่ง prop ใหม่)
+                subjectName={subjectName} 
                 onDelete={handleDelete} 
                 onEdit={setEditingStudent} 
               />
