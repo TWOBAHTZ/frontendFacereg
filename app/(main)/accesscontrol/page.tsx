@@ -11,8 +11,7 @@ import { getAuthToken } from "../../authConfig";
 const BACKEND_URL = 'http://localhost:8000';
 const WS_BACKEND_URL = 'ws://localhost:8000';
 
-// ✨ [ใหม่] 2. ย้าย Interface มาไว้ข้างบนสุด
-// (เพื่อให้ทุก Component ในไฟล์นี้ใช้ Interface เดียวกัน)
+// ✨ 2. Interface (ควรจะถูกประกาศในไฟล์นี้หรือ Import)
 interface Subject {
   subject_id: number;
   subject_name: string;
@@ -22,9 +21,21 @@ interface Subject {
   class_start_time?: string | null; // (API ส่งมาเป็น string)
 }
 
+interface LogEntry { 
+  log_id: number; user_id: number; user_name: string; student_code: string; 
+  action: "enter" | "exit"; 
+  timestamp: string; confidence: number | null; 
+  subject_id: number | null; snapshot_path: string | null;
+  log_status: "Present" | "Late" | null;
+}
+
+interface AIResult { name: string; box: [number, number, number, number]; similarity?: number | null; matched: boolean; display_name: string; }
+interface AIData { results: AIResult[]; ai_width: number; ai_height: number; }
+interface DiscoveredDevice { src: string; width: number; height: number; readable: boolean; }
+
+
 // --- (SettingsModal Component) ---
 interface SettingsModalProps { isOpen: boolean; onClose: () => void; onSelectDevice: (src: string) => void; }
-interface DiscoveredDevice { src: string; width: number; height: number; readable: boolean; }
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSelectDevice }) => {
   const [devices, setDevices] = useState<DiscoveredDevice[]>([]);
   const selectRef = useRef<HTMLSelectElement>(null);
@@ -118,9 +129,13 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSu
           class_start_time: classStartTime || null, 
         }),
       });
-      if (!res.ok) { const data = await res.json(); throw new Error(data.detail || 'Failed to create subject'); }
-      onSubjectAdded();
-      onClose();
+      if (res.ok) { 
+        onSubjectAdded();
+        onClose();
+      } else { 
+        const data = await res.json(); 
+        throw new Error(data.detail || 'Failed to create subject'); 
+      }
     } catch (err: any) { setError(err.message); } 
     finally { setIsSubmitting(false); }
   };
@@ -136,7 +151,6 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSu
         <button className={styles.closeButton} onClick={onClose}><X size={20} /></button>
         <h2>Create New Subject</h2>
         <form onSubmit={handleSubmit} className={styles.modalForm}>
-          {/* ... (UI ของ Form เหมือนเดิม) ... */}
           <div className={styles.formGroup}>
             <label htmlFor="academicYear">Academic Year <span style={{ color: '#ef4444' }}>*</span></label>
             <input id="academicYear" type="number" value={academicYear} onChange={e => setAcademicYear(e.target.value)} placeholder="e.g. 2024-2025" disabled={isSubmitting} required />
@@ -184,7 +198,6 @@ export const DeleteSubjectModal: React.FC<DeleteSubjectModalProps> = ({ isOpen, 
         const accessToken = await getAuthToken(instance, accounts[0]);
         const headers = { "Authorization": `Bearer ${accessToken}` };
         
-        // ✨ [แก้ไข] 3. เรียก API /subjects
         const response = await fetch(`${BACKEND_URL}/subjects`, { headers });
         if (!response.ok) throw new Error("Failed to fetch subjects");
         
@@ -356,8 +369,36 @@ const AccessControlPage = () => {
   const [snapshotModalUrl, setSnapshotModalUrl] = useState<string | null>(null);
   const [studentCount, setStudentCount] = useState({ checked: 0, total: 0 });
   const [isSavingTime, setIsSavingTime] = useState(false);
+  
+  // ✨ [ใหม่] สถานะ Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const logsPerPage = 5; 
 
   const formatDateForAPI = (date: Date): string => { return date.toISOString().split('T')[0]; };
+
+  const fetchStudentTotalCount = useCallback(async (subjectId: string | null) => {
+    if (!subjectId || accounts.length === 0) {
+        setStudentCount(prev => ({ ...prev, total: 0 }));
+        return;
+    }
+    
+    try {
+        const accessToken = await getAuthToken(instance, accounts[0]);
+        const countRes = await fetch(`${BACKEND_URL}/subjects/${subjectId}/student_count`, {
+            headers: { "Authorization": `Bearer ${accessToken}` }
+        });
+        
+        if (!countRes.ok) throw new Error("Failed to fetch student count");
+        
+        const countData = await countRes.json();
+        setStudentCount(prev => ({ ...prev, total: countData.total_students }));
+
+    } catch (err) {
+        console.error("Failed to fetch student total count:", err);
+        setStudentCount(prev => ({ ...prev, total: 0 }));
+    }
+  }, [instance, accounts]);
+
 
   const fetchSubjects = useCallback(async () => {
     if (accounts.length === 0) return;
@@ -365,7 +406,6 @@ const AccessControlPage = () => {
       const accessToken = await getAuthToken(instance, accounts[0]);
       const headers = { "Authorization": `Bearer ${accessToken}` };
       
-      // ✨ [แก้ไข] 4. เรียก API ที่ถูกต้อง (/subjects)
       const response = await fetch(`${BACKEND_URL}/subjects`, { headers });
       if (!response.ok) throw new Error("Failed to fetch subjects");
       
@@ -374,7 +414,6 @@ const AccessControlPage = () => {
       
       let currentSubjId = selectedSubjectId;
       if (!currentSubjId && data.length > 0) {
-        // ✨ [แก้ไข] 5. ใช้ .subject_id (Error 98175e)
         currentSubjId = data[0].subject_id.toString(); 
         setSelectedSubjectId(currentSubjId);
       }
@@ -408,6 +447,12 @@ const AccessControlPage = () => {
 
   const pollNewLogs = useCallback(async () => {
     if (!isViewingToday || accounts.length === 0) return; 
+    
+    // 1. เรียก fetchStudentTotalCount เพื่ออัปเดต Total Count
+    if (selectedSubjectId) {
+        fetchStudentTotalCount(selectedSubjectId);
+    }
+    
     try {
       const accessToken = await getAuthToken(instance, accounts[0]);
       const headers = { "Authorization": `Bearer ${accessToken}` };
@@ -422,7 +467,8 @@ const AccessControlPage = () => {
         }
       }
     } catch (err) { console.error("Failed to poll new logs:", err); }
-  }, [isViewingToday, selectedSubjectId, instance, accounts]); 
+  }, [isViewingToday, selectedSubjectId, instance, accounts, fetchStudentTotalCount]); // [แก้ไข] เพิ่ม fetchStudentTotalCount เป็น dependency
+
 
   // (useEffect ของ studentCount - เหมือนเดิม)
   useEffect(() => {
@@ -438,6 +484,7 @@ const AccessControlPage = () => {
   // (useEffect ของ poll - เหมือนเดิม)
   useEffect(() => {
     fetchInitialLogs(); 
+    setCurrentPage(1); // กลับไปหน้าแรกเมื่อ fetchInitialLogs ถูกเรียก
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     if (isViewingToday) { pollIntervalRef.current = setInterval(pollNewLogs, 3000); }
     return () => { if (pollIntervalRef.current) { clearInterval(pollIntervalRef.current); } };
@@ -467,8 +514,12 @@ const AccessControlPage = () => {
     if (accounts.length === 0) { console.error("Not logged in"); return; }
     
     setSelectedSubjectId(newSubjectId);
+    setStudentCount({ checked: 0, total: 0 }); // Reset Counter
+    setCurrentPage(1); // กลับไปหน้าแรกเมื่อเปลี่ยน Subject
     
-    // ✨ [แก้ไข] 6. ใช้ .subject_id (Error 98177c)
+    // 2. เรียก fetchStudentTotalCount ทันทีเมื่อ Subject เปลี่ยน
+    fetchStudentTotalCount(newSubjectId);
+
     const selectedSubj = subjects.find(s => s.subject_id.toString() === newSubjectId);
     
     if (selectedSubj && selectedSubj.class_start_time) {
@@ -477,7 +528,6 @@ const AccessControlPage = () => {
       setLateTime('09:30'); 
     }
     const subjectIdAsInt = newSubjectId ? parseInt(newSubjectId, 10) : null;
-    setStudentCount({ checked: 0, total: 0 });
     
     try {
       const accessToken = await getAuthToken(instance, accounts[0]);
@@ -491,14 +541,6 @@ const AccessControlPage = () => {
       const data = await res.json();
       console.log("Backend roster updated:", data);
       
-      if (subjectIdAsInt) {
-        const countRes = await fetch(`${BACKEND_URL}/subjects/${subjectIdAsInt}/student_count`, {
-          headers: { "Authorization": `Bearer ${accessToken}` }
-        });
-        if (!countRes.ok) throw new Error("Failed to fetch student count");
-        const countData = await countRes.json();
-        setStudentCount(prev => ({ ...prev, total: countData.total_students }));
-      }
     } catch (err) {
       console.error("Failed to update subject info:", err);
     }
@@ -630,7 +672,63 @@ const AccessControlPage = () => {
          alert(`Export failed: ${err.message}`);
     }
   };
+  
+  // ✨ [ใหม่] Logic Pagination
+  const indexOfLastLog = currentPage * logsPerPage;
+  const indexOfFirstLog = indexOfLastLog - logsPerPage;
+  const currentLogs = logs.slice(indexOfFirstLog, indexOfLastLog);
+  const totalPages = Math.ceil(logs.length / logsPerPage);
 
+  const paginate = (pageNumber: number) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
+
+  const getPageNumbers = () => {
+    const pageNumbers: (number | string)[] = [];
+    const maxPagesToShow = 7; 
+    const sidePages = 2; 
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      let start = Math.max(2, currentPage - sidePages);
+      let end = Math.min(totalPages - 1, currentPage + sidePages);
+
+      pageNumbers.push(1);
+
+      if (start > 2) {
+        pageNumbers.push('...');
+      }
+
+      for (let i = start; i <= end; i++) {
+        pageNumbers.push(i);
+      }
+
+      if (end < totalPages - 1) {
+        pageNumbers.push('...');
+      }
+      
+      if (totalPages > 1 && !pageNumbers.includes(totalPages)) {
+        pageNumbers.push(totalPages);
+      }
+
+      // Clean up adjacent '...'
+      const finalPageNumbers: (number | string)[] = [];
+      let lastItem: number | string | null = null;
+      for (const item of pageNumbers) {
+          if (item === '...' && lastItem === '...') continue;
+          finalPageNumbers.push(item);
+          lastItem = item;
+      }
+      return finalPageNumbers;
+    }
+    return pageNumbers;
+  };
+  
 
   return (
     <div className={styles.pageContainer}>
@@ -669,7 +767,6 @@ const AccessControlPage = () => {
               style={{ flex: 1, minWidth: '150px' }} 
             >
               <option value="">-- All Subjects --</option>
-              {/* ✨ [แก้ไข] 7. ใช้ .subject_id (Error 981778) */}
               {subjects.map((subj) => (
                 <option key={subj.subject_id} value={subj.subject_id}>
                   {subj.academic_year ? `[${subj.academic_year}] ` : ''}
@@ -760,10 +857,10 @@ const AccessControlPage = () => {
               </tr>
             </thead>
             <tbody>
-              {logs.length === 0 ? (
+              {currentLogs.length === 0 ? (
                 <tr><td colSpan={5} className={styles.noLogs}>No logs found for this day.</td></tr>
               ) : (
-                logs.map((log) => (
+                currentLogs.map((log) => (
                   <tr key={log.log_id}>
                     <td className={styles.tableCellText}>{new Date(log.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</td>
                     <td className={styles.tableCellText}>{log.user_name}</td>
@@ -798,7 +895,40 @@ const AccessControlPage = () => {
             </tbody>
           </table>
         </div>
-      </div>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+            <div className={styles.paginationContainer}>
+                <button 
+                    onClick={() => paginate(currentPage - 1)} 
+                    disabled={currentPage === 1}
+                    className={styles.paginationButton}
+                >
+                    Previous
+                </button>
+                
+                {getPageNumbers().map((number, index) => (
+                    <button
+                        key={index}
+                        onClick={() => typeof number === 'number' && paginate(number)}
+                        className={`${styles.pageNumberButton} ${number === currentPage ? styles.activePage : ''}`}
+                        disabled={number === '...'}
+                    >
+                        {number}
+                    </button>
+                ))}
+                
+                <button 
+                    onClick={() => paginate(currentPage + 1)} 
+                    disabled={currentPage === totalPages}
+                    className={styles.paginationButton}
+                >
+                    Next
+                </button>
+            </div>
+        )}
+      </div> 
+      
     </div>
   );
 };
