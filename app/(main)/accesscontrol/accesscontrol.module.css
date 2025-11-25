@@ -258,7 +258,6 @@
     color: #64748b; 
 }
 
-/* ✨ [แก้ไข] จัดการความกว้างและ Alignment ของ Header */
 .attendanceTable th:nth-child(1) { width: 15%; } /* Time */
 .attendanceTable th:nth-child(2) { width: 30%; } /* Name */
 .attendanceTable th:nth-child(3) { width: 25%; } /* ID */
@@ -473,7 +472,7 @@
     color: #b91c1c;
 }
 
-/* ✨ [ใหม่] Student Counter (1/1) */
+/* Student Counter */
 .studentCounter {
     display: flex;
     align-items: center;
@@ -557,10 +556,10 @@
     to { transform: rotate(360deg); }
 }
 
-/* --- [ใหม่] Delete Subject Modal List --- */
+/* --- Delete Subject Modal List --- */
 .deleteListContainer {
     margin-top: 1.5rem;
-    max-height: 300px; /* กำหนดความสูงสูงสุด */
+    max-height: 300px;
     overflow-y: auto;
     border: 1px solid #e2e8f0;
     border-radius: 0.5rem;
@@ -599,10 +598,10 @@
     cursor: not-allowed;
 }
 
-/* --- Pagination Styles (Updated) --- */
+/* --- Pagination Styles --- */
 .paginationContainer {
     display: flex;
-    justify-content: center; /* จัดให้อยู่ตรงกลาง */
+    justify-content: center;
     align-items: center;
     gap: 0.5rem; 
     padding: 1rem 0; 
@@ -633,13 +632,12 @@
     color: #3b82f6; 
 }
 
-/* ปุ่มเลขหน้า */
 .pageNumberButton {
     padding: 0.5rem 0.8rem;
     border: 1px solid #cbd5e1;
     border-radius: 0.5rem;
     background-color: white;
-    color: #475569; /* สีเทาเข้มสำหรับตัวเลข */
+    color: #475569;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -652,7 +650,6 @@
     border-color: #3b82f6;
 }
 
-/* Active Page */
 .activePage {
     background-color: #3b82f6;
     color: white;
@@ -663,7 +660,6 @@
     background-color: #2563eb;
 }
 
-/* สำหรับ '...' */
 .pageNumberButton:disabled {
     cursor: default;
     background: none;

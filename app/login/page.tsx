@@ -99,7 +99,6 @@ const LoginPageContent = () => {
   );
 };
 
-// --- (ส่วนหุ้ม MsalProvider) ---
 const LoginPage = () => {
   return (
     <MsalProvider instance={msalInstance}>

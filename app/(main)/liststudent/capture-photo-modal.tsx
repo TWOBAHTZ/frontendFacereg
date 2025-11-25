@@ -1,5 +1,3 @@
-// app/liststudent/capture-photo-modal.tsx
-
 'use client'; 
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -12,7 +10,6 @@ const BACKEND_URL = 'http://localhost:8000';
 interface CapturePhotoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // Handler ที่รับ File ใหม่ (เมื่อถ่ายสำเร็จ)
   onCapture: (imageFile: File) => void; 
   authToken: string | null;
   camId: string;
@@ -24,9 +21,8 @@ const CapturePhotoModal: React.FC<CapturePhotoModalProps> = ({ isOpen, onClose, 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   
-  // สถานะ: 'loading', 'live', 'error'
   const [mode, setMode] = useState<'loading' | 'live' | 'error' | 'preview'>('loading');
-  const [capturedImageBlob, setCapturedImageBlob] = useState<Blob | null>(null); // ใช้เก็บภาพ preview ชั่วคราว
+  const [capturedImageBlob, setCapturedImageBlob] = useState<Blob | null>(null);
   const [cameraError, setCameraError] = useState<string>('');
 
   const cleanupStream = useCallback(() => {
@@ -45,8 +41,7 @@ const CapturePhotoModal: React.FC<CapturePhotoModalProps> = ({ isOpen, onClose, 
     }
   }, [capturedImageBlob]);
 
-
-  // ฟังก์ชันสั่งเปิด/ปิดกล้อง Backend
+  // Function to control Backend Camera
   const controlBackendCamera = useCallback(async (action: 'open' | 'close') => {
     if (!authToken || !camId) return;
     try {
@@ -60,7 +55,6 @@ const CapturePhotoModal: React.FC<CapturePhotoModalProps> = ({ isOpen, onClose, 
     }
   }, [authToken, camId]);
 
-
   const startLivePreview = useCallback(async () => {
     setMode('loading');
     setCameraError('');
@@ -72,14 +66,14 @@ const CapturePhotoModal: React.FC<CapturePhotoModalProps> = ({ isOpen, onClose, 
        return;
     }
 
-    // 1. สั่งปิดกล้อง Backend ก่อน
+    // 1. Close Backend Camera first
     await controlBackendCamera('close');
     
-    // 2. เพิ่ม Delay 1000ms เพื่อรอให้ OS ปล่อย Lock
+    // 2. Add delay to ensure OS releases the camera lock
     await new Promise(resolve => setTimeout(resolve, 1000)); 
     
     try {
-      // 3. ขออนุญาตเข้าถึงกล้อง Frontend
+      // 3. Request Frontend Camera access
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: { ideal: 640 }, height: { ideal: 480 } }, 
         audio: false 
@@ -94,7 +88,7 @@ const CapturePhotoModal: React.FC<CapturePhotoModalProps> = ({ isOpen, onClose, 
         videoElement.onloadedmetadata = async () => {
             try {
                 await videoElement.play();
-                setMode('live'); // กล้องพร้อมแล้ว
+                setMode('live');
             } catch (playError) {
                 console.warn("Autoplay was prevented.", playError);
                 setMode('live'); 
@@ -104,37 +98,28 @@ const CapturePhotoModal: React.FC<CapturePhotoModalProps> = ({ isOpen, onClose, 
 
     } catch (err: any) {
       console.error("Error accessing camera: ", err);
-      // ถ้า Error ให้สั่งเปิดกล้อง Backend กลับทันที
       controlBackendCamera('open'); 
       setCameraError('Device is currently in use by another application or permission is denied.');
       setMode('error');
     }
   }, [controlBackendCamera, cleanupStream, authToken]);
 
-  
   const handleCapture = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || mode !== 'live') return;
 
-    // ตั้งค่าขนาด Canvas และวาดภาพ
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // ดึงข้อมูลภาพเป็น Blob (JPEG)
       canvas.toBlob((blob) => {
         if (blob) {
-          // สร้าง File object จาก Blob
-          const imageFile = new File([blob], `captured_face_${Date.now()}.jpeg`, { type: 'image/jpeg' });
-          
-          // ✨ [แก้ไข] เปลี่ยนไปโหมด Preview
           setCapturedImageBlob(blob);
           setMode('preview');
-          cleanupStream(); // หยุด Live Stream เมื่อถ่ายภาพสำเร็จ
-
+          cleanupStream(); 
         } else {
           setCameraError("Failed to process image.");
           setMode('error');
@@ -143,48 +128,36 @@ const CapturePhotoModal: React.FC<CapturePhotoModalProps> = ({ isOpen, onClose, 
     }
   }, [mode, cleanupStream]);
   
-
-  // Handler สำหรับปุ่ม Submit Photo
   const handleUsePhoto = useCallback(() => {
     if (capturedImageBlob) {
       const imageFile = new File([capturedImageBlob], `captured_face_${Date.now()}.jpeg`, { type: 'image/jpeg' });
-      
-      // ✨ [แก้ไข] ส่งภาพกลับไปให้ Modal หลัก
       onCapture(imageFile); 
-      
-      // กลับสู่โหมด Live เพื่อให้ถ่ายต่อได้ (ถ้าต้องการให้ปิด ให้เรียก handleModalClose)
       startLivePreview(); 
     }
   }, [capturedImageBlob, onCapture, startLivePreview]);
 
-  
   const handleRetry = () => {
-    // Retry คือกลับไปเริ่ม Live Preview ใหม่
     startLivePreview();
   };
   
   const handleModalClose = useCallback(() => {
     cleanupStream();
-    cleanup(); // ล้าง Blob URL
-    controlBackendCamera('open'); // สั่งเปิดกล้อง Backend กลับ
+    cleanup();
+    controlBackendCamera('open'); 
     onClose();
   }, [cleanupStream, cleanup, controlBackendCamera, onClose]);
 
-
-  // Effect สำหรับเปิด/ปิด Modal และ Clean up
   useEffect(() => {
     if (isOpen) {
         startLivePreview();
     } else {
         cleanupStream();
     }
-    // Cleanup function when component unmounts
     return () => {
         cleanupStream();
         controlBackendCamera('open');
     }
   }, [isOpen, cleanupStream, controlBackendCamera, startLivePreview]);
-  
   
   if (!isOpen) return null;
 
@@ -202,10 +175,10 @@ const CapturePhotoModal: React.FC<CapturePhotoModalProps> = ({ isOpen, onClose, 
         
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', width: '100%', maxWidth: '450px', margin: '0 auto' }}>
           
-          {/* ----------------- Status Display ----------------- */}
+          {/* Status Display */}
           <div style={{ padding: '1rem 0', display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
             
-            {/* 1. Live Video / Placeholder (ใช้สำหรับ loading, live, error) */}
+            {/* Live Video / Placeholder */}
             {(mode === 'loading' || mode === 'live' || mode === 'error') && (
               <div style={{ position: 'relative', width: '100%', maxWidth: '400px', height: '300px', backgroundColor: '#333', borderRadius: '0.5rem' }}>
                 <video 
@@ -217,7 +190,6 @@ const CapturePhotoModal: React.FC<CapturePhotoModalProps> = ({ isOpen, onClose, 
                   style={{ display: mode === 'live' ? 'block' : 'none', width: '100%', height: '100%', borderRadius: '0.5rem', objectFit: 'cover' }}
                 />
                 
-                {/* Placeholder สำหรับ Loading/Error */}
                 {(mode === 'loading' || mode === 'error') && (
                   <div className={styles.imagePlaceholder} style={{ position: 'absolute', inset: 0 }}>
                     {mode === 'loading' ? (
@@ -238,7 +210,7 @@ const CapturePhotoModal: React.FC<CapturePhotoModalProps> = ({ isOpen, onClose, 
               </div>
             )}
 
-            {/* 2. Preview (ใช้สำหรับแสดงภาพนิ่งที่ถ่ายได้) */}
+            {/* Preview Image */}
             {mode === 'preview' && capturedImageBlob && (
                 <img 
                     src={URL.createObjectURL(capturedImageBlob)} 
@@ -247,12 +219,10 @@ const CapturePhotoModal: React.FC<CapturePhotoModalProps> = ({ isOpen, onClose, 
                 />
             )}
             
-            {/* Canvas (ซ่อนไว้สำหรับดึงภาพ) */}
             <canvas ref={canvasRef} style={{ display: 'none' }} />
           </div>
         
-          {/* ----------------- Actions ----------------- */}
-
+          {/* Actions */}
           {isLive && (
              <button 
                 type="button" 

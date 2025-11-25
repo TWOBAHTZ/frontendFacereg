@@ -103,19 +103,14 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // สถานะสำหรับ Modal ย่อย
   const [isCaptureModalOpen, setIsCaptureModalOpen] = useState(false);
-  // ✨ [แก้ไข] เปลี่ยนจากตัวแปรเดียว เป็น List of Files
   const [capturedImages, setCapturedImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   
-  // สถานะสำหรับ Auth Token
   const [authToken, setAuthToken] = useState<string | null>(null);
-
 
   const resetForm = useCallback(() => {
     setName(''); setStudentCode(''); setSelectedSubjectId(''); setUploadedFiles([]);
-    // ✨ [แก้ไข] Reset capturedImages
     setCapturedImages([]);
     setError(''); setIsSubmitting(false);
     previewUrls.forEach(url => URL.revokeObjectURL(url));
@@ -127,14 +122,13 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
     if (!isOpen) { 
       setTimeout(resetForm, 300); 
     } else if (accounts.length > 0) {
-      // ดึง Token เมื่อ Modal เปิด
       getAuthToken(instance, accounts[0]).then(setAuthToken).catch(() => setAuthToken(null));
     }
     return () => { previewUrls.forEach(url => URL.revokeObjectURL(url)); };
   }, [isOpen, resetForm, previewUrls, instance, accounts]);
 
   const updateFilesAndPreviews = useCallback((newFiles: File[], newCapturedImages: File[]) => {
-    // ✨ [แก้ไข] รวมไฟล์ที่อัปโหลดและไฟล์ที่ถ่าย
+    // Combine uploaded files and captured images
     const allFiles = [...newFiles, ...newCapturedImages];
     
     if (allFiles.length > 50) {
@@ -158,7 +152,6 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
     if (event.target.files) {
       const selectedFiles = Array.from(event.target.files);
       const newFiles = [...uploadedFiles, ...selectedFiles];
-      // ✨ [แก้ไข] ส่ง capturedImages เดิมเข้าไป
       updateFilesAndPreviews(newFiles, capturedImages);
     }
   };
@@ -175,10 +168,8 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
     }
     
     if (index < uploadedFiles.length) {
-      // กำจัดไฟล์ที่อัปโหลด
       newFiles = newFiles.filter((_, i) => i !== index);
     } else {
-      // กำจัดภาพที่ถ่าย (index ถูกปรับเทียบกับ List capturedImages)
       const capturedIndex = index - uploadedFiles.length;
       newCapturedImages = newCapturedImages.filter((_, i) => i !== capturedIndex);
     }
@@ -186,20 +177,14 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
     updateFilesAndPreviews(newFiles, newCapturedImages);
   };
 
-
-  // ✨ [แก้ไข] Handler สำหรับภาพที่ถ่ายสำเร็จ (รับ File ใหม่)
   const handleCapturedImage = useCallback((imageFile: File) => {
-    // เพิ่มภาพที่ถ่ายใหม่เข้าไปใน List เดิม
     const newCapturedImages = [...capturedImages, imageFile]; 
     updateFilesAndPreviews(uploadedFiles, newCapturedImages);
-    // Modal จะยังคงเปิดอยู่เพื่อให้ถ่ายต่อได้
   }, [uploadedFiles, capturedImages, updateFilesAndPreviews]);
-  
   
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    // ✨ [แก้ไข] รวมไฟล์ทั้งหมด
     const filesToUpload = [...uploadedFiles, ...capturedImages];
     
     if (!name.trim()) { setError('กรุณากรอกชื่อนักศึกษา'); return; }
@@ -212,7 +197,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
     try {
       const accessToken = authToken;
 
-      // 1. สร้าง User ก่อน (ส่งเป็น JSON)
+      // 1. Create User
       const userResponse = await fetch(`${BACKEND_URL}/users`, {
         method: 'POST',
         headers: { 
@@ -233,7 +218,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
       const newUserResult = await userResponse.json();
       const newUserId = newUserResult.user.user_id;
       
-      // 2. อัปโหลดรูปภาพ (ใช้ FormData)
+      // 2. Upload Images
       const uploadFormData = new FormData();
       uploadFormData.append('user_id', newUserId.toString());
       filesToUpload.forEach((file) => uploadFormData.append('images', file));
@@ -247,7 +232,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
       });
       if (!uploadResponse.ok) throw new Error('Failed to upload images.');
 
-      // 3. สั่ง Train
+      // 3. Train
       await fetch(`${BACKEND_URL}/train/refresh`, { 
         method: 'POST',
         headers: {
@@ -264,21 +249,18 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClose, onSt
     }
   };
 
-
   if (!isOpen) return null;
 
   return (
     <>
-      {/* 1. Modal ย่อยสำหรับ Capture Photo */}
       <CapturePhotoModal 
         isOpen={isCaptureModalOpen} 
         onClose={() => setIsCaptureModalOpen(false)} 
         onCapture={handleCapturedImage} 
         authToken={authToken} 
-        camId="entrance" // ใช้ 'entrance' เป็น ID กล้องหลักในการควบคุม
+        camId="entrance" 
       />
       
-      {/* 2. Modal หลักสำหรับ Add Student */}
       {(isOpen && !isCaptureModalOpen) && ( 
         <div className={styles.modalBackdrop} onClick={onClose}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>

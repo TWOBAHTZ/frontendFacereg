@@ -3,22 +3,19 @@
 import React, { useEffect, useRef, useState, useCallback, FormEvent } from 'react';
 import { Settings, Download, X, VideoOff, Plus, Loader2, Save, Trash2, Users } from 'lucide-react'; 
 import styles from './accesscontrol.module.css';
-
-// ✨ 1. Import MSAL และ Helper
 import { useMsal } from "@azure/msal-react";
 import { getAuthToken } from "../../authConfig";
 
 const BACKEND_URL = 'http://localhost:8000';
 const WS_BACKEND_URL = 'ws://localhost:8000';
 
-// ✨ 2. Interface (ควรจะถูกประกาศในไฟล์นี้หรือ Import)
 interface Subject {
   subject_id: number;
   subject_name: string;
   section?: string | null;
   schedule?: string | null;
   academic_year?: string | null; 
-  class_start_time?: string | null; // (API ส่งมาเป็น string)
+  class_start_time?: string | null;
 }
 
 interface LogEntry { 
@@ -33,8 +30,7 @@ interface AIResult { name: string; box: [number, number, number, number]; simila
 interface AIData { results: AIResult[]; ai_width: number; ai_height: number; }
 interface DiscoveredDevice { src: string; width: number; height: number; readable: boolean; }
 
-
-// --- (SettingsModal Component) ---
+/* --- SettingsModal Component --- */
 interface SettingsModalProps { isOpen: boolean; onClose: () => void; onSelectDevice: (src: string) => void; }
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSelectDevice }) => {
   const [devices, setDevices] = useState<DiscoveredDevice[]>([]);
@@ -79,7 +75,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onSelect
   );
 };
 
-// --- (AddSubjectModal Component) ---
+/* --- AddSubjectModal Component --- */
 interface AddSubjectModalProps { isOpen: boolean; onClose: () => void; onSubjectAdded: () => void; }
 const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSubjectAdded }) => {
   const [subjectName, setSubjectName] = useState('');
@@ -181,11 +177,10 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSu
   );
 };
 
-
-// (DeleteSubjectModal Component)
+/* --- DeleteSubjectModal Component --- */
 interface DeleteSubjectModalProps { isOpen: boolean; onClose: () => void; onSubjectDeleted: () => void; }
 export const DeleteSubjectModal: React.FC<DeleteSubjectModalProps> = ({ isOpen, onClose, onSubjectDeleted }) => {
-  const [subjects, setSubjects] = useState<Subject[]>([]); // (ใช้ Interface ที่แชร์)
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
   
@@ -261,8 +256,7 @@ export const DeleteSubjectModal: React.FC<DeleteSubjectModalProps> = ({ isOpen, 
   );
 };
 
-
-// (SnapshotModal Component - เหมือนเดิม)
+/* --- SnapshotModal Component --- */
 interface SnapshotModalProps { isOpen: boolean; onClose: () => void; imageUrl: string | null; }
 const SnapshotModal: React.FC<SnapshotModalProps> = ({ isOpen, onClose, imageUrl }) => {
   if (!isOpen || !imageUrl) return null;
@@ -276,9 +270,7 @@ const SnapshotModal: React.FC<SnapshotModalProps> = ({ isOpen, onClose, imageUrl
   );
 };
 
-// (useAIResults Hook)
-interface AIResult { name: string; box: [number, number, number, number]; similarity?: number | null; matched: boolean; display_name: string; }
-interface AIData { results: AIResult[]; ai_width: number; ai_height: number; }
+/* --- useAIResults Hook --- */
 const useAIResults = (camId: string, streamKey: string) => {
   const [data, setData] = useState<AIData>({ results: [], ai_width: 640, ai_height: 480 });
   const wsRef = useRef<WebSocket | null>(null);
@@ -299,7 +291,7 @@ const useAIResults = (camId: string, streamKey: string) => {
   return data;
 };
 
-// (CameraBox Component)
+/* --- CameraBox Component --- */
 interface CameraBoxProps { camId: 'entrance' | 'exit'; streamKey: string; onSettingsClick: () => void; }
 const CameraBox: React.FC<CameraBoxProps> = ({ camId, streamKey, onSettingsClick }) => {
   const [error, setError] = useState(false);
@@ -335,16 +327,7 @@ const CameraBox: React.FC<CameraBoxProps> = ({ camId, streamKey, onSettingsClick
   );
 };
 
-// (Interface LogEntry - เหมือนเดิม)
-interface LogEntry { 
-  log_id: number; user_id: number; user_name: string; student_code: string; 
-  action: "enter" | "exit"; 
-  timestamp: string; confidence: number | null; 
-  subject_id: number | null; snapshot_path: string | null;
-  log_status: "Present" | "Late" | null;
-}
-
-// --- (Main Page Component) ---
+/* --- Main Page Component --- */
 const AccessControlPage = () => {
   const { instance, accounts } = useMsal();
 
@@ -362,7 +345,7 @@ const AccessControlPage = () => {
   const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   
-  const [subjects, setSubjects] = useState<Subject[]>([]); // (ใช้ Interface ที่แชร์)
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
   
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -370,7 +353,6 @@ const AccessControlPage = () => {
   const [studentCount, setStudentCount] = useState({ checked: 0, total: 0 });
   const [isSavingTime, setIsSavingTime] = useState(false);
   
-  // ✨ [ใหม่] สถานะ Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const logsPerPage = 5; 
 
@@ -409,7 +391,7 @@ const AccessControlPage = () => {
       const response = await fetch(`${BACKEND_URL}/subjects`, { headers });
       if (!response.ok) throw new Error("Failed to fetch subjects");
       
-      const data: Subject[] = await response.json(); // (ตอนนี้ Type จะตรงแล้ว)
+      const data: Subject[] = await response.json();
       setSubjects(data);
       
       let currentSubjId = selectedSubjectId;
@@ -448,7 +430,6 @@ const AccessControlPage = () => {
   const pollNewLogs = useCallback(async () => {
     if (!isViewingToday || accounts.length === 0) return; 
     
-    // 1. เรียก fetchStudentTotalCount เพื่ออัปเดต Total Count
     if (selectedSubjectId) {
         fetchStudentTotalCount(selectedSubjectId);
     }
@@ -467,10 +448,8 @@ const AccessControlPage = () => {
         }
       }
     } catch (err) { console.error("Failed to poll new logs:", err); }
-  }, [isViewingToday, selectedSubjectId, instance, accounts, fetchStudentTotalCount]); // [แก้ไข] เพิ่ม fetchStudentTotalCount เป็น dependency
+  }, [isViewingToday, selectedSubjectId, instance, accounts, fetchStudentTotalCount]); 
 
-
-  // (useEffect ของ studentCount - เหมือนเดิม)
   useEffect(() => {
     if (selectedSubjectId) { 
       const enteredLogs = logs.filter(log => log.action === 'enter');
@@ -481,10 +460,9 @@ const AccessControlPage = () => {
     }
   }, [logs, selectedSubjectId]); 
 
-  // (useEffect ของ poll - เหมือนเดิม)
   useEffect(() => {
     fetchInitialLogs(); 
-    setCurrentPage(1); // กลับไปหน้าแรกเมื่อ fetchInitialLogs ถูกเรียก
+    setCurrentPage(1); 
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     if (isViewingToday) { pollIntervalRef.current = setInterval(pollNewLogs, 3000); }
     return () => { if (pollIntervalRef.current) { clearInterval(pollIntervalRef.current); } };
@@ -514,10 +492,9 @@ const AccessControlPage = () => {
     if (accounts.length === 0) { console.error("Not logged in"); return; }
     
     setSelectedSubjectId(newSubjectId);
-    setStudentCount({ checked: 0, total: 0 }); // Reset Counter
-    setCurrentPage(1); // กลับไปหน้าแรกเมื่อเปลี่ยน Subject
+    setStudentCount({ checked: 0, total: 0 }); 
+    setCurrentPage(1); 
     
-    // 2. เรียก fetchStudentTotalCount ทันทีเมื่อ Subject เปลี่ยน
     fetchStudentTotalCount(newSubjectId);
 
     const selectedSubj = subjects.find(s => s.subject_id.toString() === newSubjectId);
@@ -673,7 +650,6 @@ const AccessControlPage = () => {
     }
   };
   
-  // ✨ [ใหม่] Logic Pagination
   const indexOfLastLog = currentPage * logsPerPage;
   const indexOfFirstLog = indexOfLastLog - logsPerPage;
   const currentLogs = logs.slice(indexOfFirstLog, indexOfLastLog);
@@ -716,7 +692,6 @@ const AccessControlPage = () => {
         pageNumbers.push(totalPages);
       }
 
-      // Clean up adjacent '...'
       const finalPageNumbers: (number | string)[] = [];
       let lastItem: number | string | null = null;
       for (const item of pageNumbers) {
@@ -896,7 +871,6 @@ const AccessControlPage = () => {
           </table>
         </div>
         
-        {/* Pagination Controls */}
         {totalPages > 1 && (
             <div className={styles.paginationContainer}>
                 <button 

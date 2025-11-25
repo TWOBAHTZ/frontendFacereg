@@ -1,17 +1,17 @@
 /* --- CSS Variables for consistent theming --- */
 :root {
-  --bg-color: #f8fafc;        /* สีพื้นหลังหลัก (เทาอ่อนมาก) */
-  --card-color: #ffffff;      /* สีพื้นหลังการ์ด (ขาว) */
-  --primary-color: #3b82f6;   /* สีหลัก (ฟ้า) */
-  --text-primary: #1e293b;    /* สีข้อความหลัก (เทาเข้ม) */
-  --text-secondary: #64748b;  /* สีข้อความรอง (เทากลาง) */
-  --input-bg-color: #f1f5f9;  /* สีพื้นหลังปุ่มเมื่อ hover (เทาอ่อน) */
-  --border-color: #d1d5db;    /* สีเส้นขอบ (เทา) */
+  --bg-color: #f8fafc;
+  --card-color: #ffffff;
+  --primary-color: #3b82f6;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --input-bg-color: #f1f5f9;
+  --border-color: #d1d5db;
 }
 
 .container {
   display: flex;
-  flex-direction: column;     /* ✨ แก้ไข: เรียงแนวตั้งเพื่อให้โลโก้อยู่เหนือกล่อง */
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
@@ -19,11 +19,10 @@
   padding: 1rem;
 }
 
-/* ✨ เพิ่มเติม: Wrapper สำหรับโลโก้ด้านนอก */
 .externalLogoWrapper {
-  margin-bottom: 50px;        /* ระยะห่างระหว่างโลโก้กับกล่อง Login */
+  margin-bottom: 50px;
   width: 50%;
-  max-width: 380px;           /* ความกว้างสูงสุดของโลโก้ */
+  max-width: 380px;
   display: flex;
   justify-content: center;
 }

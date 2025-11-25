@@ -4,7 +4,7 @@
     position: relative; 
 }
 
-/* --- Header (Title + Export Button) --- */
+/* --- Header --- */
 .header {
     display: flex;
     justify-content: space-between;
@@ -13,18 +13,18 @@
 }
 
 .pageTitle {
-    font-size: 1.875rem; /* text-3xl */
+    font-size: 1.875rem;
     font-weight: 700;
-    color: #1e293b; /* text-slate-800 */
+    color: #1e293b;
 }
 
-/* --- Filters Container --- */
+/* --- Filters --- */
 .filtersContainer {
     display: flex;
     flex-wrap: wrap;
     gap: 1.5rem;
     padding: 1rem;
-    background-color: #f8fafc; /* slate-50 */
+    background-color: #f8fafc;
     border-radius: 0.75rem;
     border: 1px solid #e2e8f0;
     margin-bottom: 2rem;
@@ -36,7 +36,7 @@
 }
 .filterGroup label {
     font-weight: 600;
-    color: #334155; /* slate-700 */
+    color: #334155;
     display: flex;
     align-items: center;
     gap: 0.25rem;
@@ -44,23 +44,19 @@
 .filterGroup select,
 .filterGroup input[type="date"] {
     padding: 0.5rem 0.75rem;
-    border: 1px solid #cbd5e1; /* slate-300 */
+    border: 1px solid #cbd5e1;
     border-radius: 0.5rem;
     background-color: #fff;
     font-size: 0.875rem;
     color: #000000;
 }
 
-/* --- [ ⭐️⭐️⭐️ เพิ่ม ⭐️⭐️⭐️ ] --- */
-/* (สไตล์สำหรับแถบ Filter ที่ย้ายมาใหม่) */
 .semesterFilters {
     display: flex;
     flex-wrap: wrap;
     gap: 1.5rem;
-    margin-bottom: 1.5rem; /* (เว้นระยะก่อนถึง KPI) */
+    margin-bottom: 1.5rem;
 }
-/* --------------------------------- */
-
 
 /* --- Section Styles --- */
 .sectionSeparator {
@@ -68,7 +64,7 @@
     margin: 2.5rem 0;
 }
 .sectionTitle {
-    font-size: 1.5rem; /* text-2xl */
+    font-size: 1.5rem;
     font-weight: 600;
     color: #1e293b;
     margin-bottom: 1.5rem;
@@ -80,7 +76,7 @@
     margin-bottom: 1.5rem;
 }
 
-/* --- Stat Cards Grid --- */
+/* --- Stat Cards --- */
 .statsGrid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -94,7 +90,7 @@
     background-color: #fff;
     padding: 1.5rem;
     border-radius: 0.75rem;
-    border: 1px solid #e2e8f0; /* slate-200 */
+    border: 1px solid #e2e8f0;
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.03), 0 2px 4px -2px rgb(0 0 0 / 0.03);
 }
 .statIcon {
@@ -110,19 +106,15 @@
 .statTitle { font-size: 0.875rem; color: #64748b; font-weight: 500; }
 .statValue { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
 
+/* KPI Icons Colors */
+.kpiIconRoster { background-color: #e0f2fe; color: #0284c7; }
+.kpiIconAvgAttendance { background-color: #f0fdf4; color: #22c55e; }
+.kpiIconAvgLateness { background-color: #fffbeb; color: #f59e0b; }
+.kpiIconSessions { background-color: #eef2ff; color: #4f46e5; }
 
-/* --- [ ⭐️⭐️⭐️ แก้ไข ⭐️⭐️⭐️ ] --- */
-/* (แก้ไขสี Icon ให้ตรงตามโจทย์) */
-.kpiIconRoster { background-color: #e0f2fe; color: #0284c7; } /* ฟ้า/น้ำเงิน */
-.kpiIconAvgAttendance { background-color: #f0fdf4; color: #22c55e; } /* เขียว */
-.kpiIconAvgLateness { background-color: #fffbeb; color: #f59e0b; } /* เหลือง/ส้ม */
-.kpiIconSessions { background-color: #eef2ff; color: #4f46e5; } /* ม่วง/คราม */
-
-.kpiIconPresent { background-color: #f0fdf4; color: #22c55e; } /* เขียว */
-.kpiIconAbsent { background-color: #fef2f2; color: #ef4444; } /* แดง */
-.kpiIconLate { background-color: #fffbeb; color: #f59e0b; } /* เหลือง/ส้ม */
-/* --- [ ⭐️⭐️⭐️ สิ้นสุด ⭐️⭐️⭐️ ] --- */
-
+.kpiIconPresent { background-color: #f0fdf4; color: #22c55e; }
+.kpiIconAbsent { background-color: #fef2f2; color: #ef4444; }
+.kpiIconLate { background-color: #fffbeb; color: #f59e0b; }
 
 /* --- Charts Grid --- */
 .chartsGrid {
@@ -131,13 +123,10 @@
     gap: 1.5rem;
     margin-bottom: 1.5rem;
 }
-
-/* Container แบบเต็มความกว้าง */
 .fullWidthContainer {
     grid-column: 1 / -1; 
     margin-bottom: 1.5rem;
 }
-
 .chartContainer {
     background-color: #fff;
     padding: 1.5rem;
@@ -146,7 +135,7 @@
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.03), 0 2px 4px -2px rgb(0 0 0 / 0.03);
 }
 .chartTitle {
-    font-size: 1.125rem; /* text-lg */
+    font-size: 1.125rem;
     font-weight: 600;
     color: #1e293b;
     margin-bottom: 1.5rem;
@@ -171,15 +160,15 @@
 .dataTable th, .dataTable td {
     padding: 0.75rem 1rem;
     text-align: left;
-    border-bottom: 1px solid #e2e8f0; /* slate-200 */
+    border-bottom: 1px solid #e2e8f0;
 }
 .dataTable th {
-    background-color: #f8fafc; /* slate-50 */
+    background-color: #f8fafc;
     font-weight: 600;
-    color: #334155; /* slate-700 */
+    color: #334155;
 }
 .dataTable tbody tr:hover {
-    background-color: #f9fafb; /* gray-50 */
+    background-color: #f9fafb;
 }
 
 /* --- Status Badge Styles --- */
@@ -193,18 +182,17 @@
   font-size: 0.75rem;
 }
 .statusBadge.present {
-  background-color: #f0fdf4; /* green-50 */
-  color: #166534; /* green-800 */
+  background-color: #f0fdf4;
+  color: #166534;
 }
 .statusBadge.late {
-  background-color: #fffbeb; /* amber-50 */
-  color: #92400e; /* amber-800 */
+  background-color: #fffbeb;
+  color: #92400e;
 }
 .statusBadge.absent {
-  background-color: #fef2f2; /* red-50 */
-  color: #991b1b; /* red-800 */
+  background-color: #fef2f2;
+  color: #991b1b;
 }
-
 
 /* --- Loading Styles --- */
 @keyframes spin {
@@ -226,8 +214,7 @@
     border-radius: 0.75rem;
 }
 
-/* --- CSS สำหรับ Export Button, Menu, และ Overlay --- */
-
+/* --- Export Controls --- */
 .exportControls {
   position: relative;
   display: flex;
@@ -239,8 +226,8 @@
     align-items: center;
     gap: 0.5rem;
     background-color: #fff;
-    color: #3b82f6; /* blue-500 */
-    border: 1px solid #dbeafe; /* blue-200 */
+    color: #3b82f6;
+    border: 1px solid #dbeafe;
     padding: 0.6rem 1rem;
     border-radius: 0.5rem;
     font-weight: 600;
@@ -249,8 +236,8 @@
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 .exportButton:hover {
-    background-color: #f9fafb; /* gray-50 */
-    border-color: #bfdbfe; /* blue-300 */
+    background-color: #f9fafb;
+    border-color: #bfdbfe;
 }
 .exportButton:disabled {
     background-color: #f1f5f9;
@@ -311,7 +298,6 @@
   gap: 1rem;
 }
 
-/* (โค้ดบังคับสีดำจากครั้งที่แล้ว) */
 .statTitle, .statValue, .sectionTitle, .chartTitle, .dataTable th, .dataTable td {
     color: #000000 !important;
 }
