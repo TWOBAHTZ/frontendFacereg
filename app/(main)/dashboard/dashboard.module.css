@@ -1,3 +1,4 @@
+/* --- Base Layout --- */
 .pageContainer {
     padding: 2rem;
     background-color: #fff;
@@ -141,34 +142,102 @@
     margin-bottom: 1.5rem;
 }
 .chartContent {
-    height: 350px;
     position: relative;
+    overflow-x: auto; 
+    padding-bottom: 20px; 
 }
 
 /* --- Table Styles --- */
 .tableContainer {
     width: 100%;
-    overflow-x: auto;
-    height: 350px;
-    overflow-y: auto;
+    max-height: 400px; 
+    overflow-y: auto; 
+    overflow-x: hidden;
 }
+
 .dataTable {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
+    table-layout: fixed; 
 }
-.dataTable th, .dataTable td {
+
+.dataTable thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #f8fafc; 
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1); 
+}
+
+.dataTable tbody {
+    
+}
+
+/* --- Column Widths --- */
+.chartsGrid .dataTable th, 
+.chartsGrid .dataTable td {
+    width: 25%;
     padding: 0.75rem 1rem;
     text-align: left;
     border-bottom: 1px solid #e2e8f0;
 }
+
+.fullWidthContainer .dataTable th, 
+.fullWidthContainer .dataTable td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.fullWidthContainer .dataTable th:nth-child(1), 
+.fullWidthContainer .dataTable td:nth-child(1) { width: 30%; } 
+.fullWidthContainer .dataTable th:nth-child(2), 
+.fullWidthContainer .dataTable td:nth-child(2) { width: 15%; } 
+.fullWidthContainer .dataTable th:nth-child(3), 
+.fullWidthContainer .dataTable td:nth-child(3) { width: 15%; } 
+.fullWidthContainer .dataTable th:nth-child(4), 
+.fullWidthContainer .dataTable td:nth-child(4) { width: 15%; } 
+.fullWidthContainer .dataTable th:nth-child(5), 
+.fullWidthContainer .dataTable td:nth-child(5) { width: 25%; } 
+
+
 .dataTable th {
     background-color: #f8fafc;
     font-weight: 600;
     color: #334155;
 }
+
 .dataTable tbody tr:hover {
     background-color: #f9fafb;
+}
+
+
+/* --- Header Sortable Styles --- */
+.sortableHeader {
+    cursor: pointer;
+    position: relative;
+    padding-right: 25px !important; 
+    transition: background-color 0.1s ease;
+}
+
+.sortableHeader:hover {
+    background-color: #f1f5f9; 
+}
+
+.sortIcon {
+    position: absolute; 
+    top: 50%;
+    right: 8px; 
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    color: #64748b; 
+}
+
+.sortIcon svg {
+    width: 12px;
+    height: 12px;
 }
 
 /* --- Status Badge Styles --- */

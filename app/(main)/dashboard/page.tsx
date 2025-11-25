@@ -4,8 +4,8 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import styles from './dashboard.module.css';
 import { 
   Loader2, Users, BarChart, Clock, PieChart, TrendingUp, Calendar, ChevronDown, 
-  CheckCircle, XCircle, AlertTriangle, Download
-} from 'lucide-react';
+  CheckCircle, XCircle, AlertTriangle, Download, ChevronUp 
+} from 'lucide-react'; 
 
 import { Bar, Line, Pie } from 'react-chartjs-2'; 
 import {
@@ -117,15 +117,34 @@ const ChartContainer: React.FC<{ title: string; children: React.ReactNode; class
     </div>
   </div>
 );
-const StudentsLateTable: React.FC<{ data: IStudentLateRisk[] }> = ({ data }) => (
+
+const SortIcon: React.FC<{ active: boolean; direction: 'asc' | 'desc' }> = ({ active, direction }) => (
+    <div className={styles.sortIcon}>
+        {active && direction === 'asc' ? <ChevronUp size={12} /> : null} 
+        {active && direction === 'desc' ? <ChevronDown size={12} /> : null} 
+        {!active && <ChevronDown size={12} style={{ opacity: 0.3 }} />}
+    </div>
+);
+
+
+const StudentsLateTable: React.FC<{ data: IStudentLateRisk[]; sortState: { key: keyof IStudentLateRisk; direction: 'asc' | 'desc' }; onSort: (key: string) => void }> = ({ data, sortState, onSort }) => (
   <div className={styles.tableContainer}>
     <table className={styles.dataTable}>
       <thead>
         <tr>
-          <th>ชื่อ-สกุล</th>
-          <th>รหัสนักศึกษา</th>
-          <th>จำนวนครั้งที่สาย</th>
-          <th>คิดเป็นร้อยละ (สาย)</th>
+          <th className={styles.sortableHeader} onClick={() => onSort('name')}>ชื่อ-สกุล</th>
+          <th className={styles.sortableHeader} onClick={() => onSort('studentId')}>
+            รหัสนักศึกษา
+            <SortIcon active={sortState.key === 'studentId'} direction={sortState.direction} />
+          </th>
+          <th className={styles.sortableHeader} onClick={() => onSort('lates_count')}>
+            จำนวนครั้งที่สาย
+            <SortIcon active={sortState.key === 'lates_count'} direction={sortState.direction} />
+          </th>
+          <th className={styles.sortableHeader} onClick={() => onSort('lates_percent')}>
+            คิดเป็นร้อยละ (สาย)
+            <SortIcon active={sortState.key === 'lates_percent'} direction={sortState.direction} />
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -145,15 +164,25 @@ const StudentsLateTable: React.FC<{ data: IStudentLateRisk[] }> = ({ data }) => 
     </table>
   </div>
 );
-const StudentsAbsentTable: React.FC<{ data: IStudentAbsentRisk[] }> = ({ data }) => (
+
+const StudentsAbsentTable: React.FC<{ data: IStudentAbsentRisk[]; sortState: { key: keyof IStudentAbsentRisk; direction: 'asc' | 'desc' }; onSort: (key: string) => void }> = ({ data, sortState, onSort }) => (
   <div className={styles.tableContainer}>
     <table className={styles.dataTable}>
       <thead>
         <tr>
-          <th>ชื่อ-สกุล</th>
-          <th>รหัสนักศึกษา</th>
-          <th>จำนวนครั้งที่ขาด</th>
-          <th>คิดเป็นร้อยละ (ขาด)</th>
+          <th className={styles.sortableHeader} onClick={() => onSort('name')}>ชื่อ-สกุล</th>
+          <th className={styles.sortableHeader} onClick={() => onSort('studentId')}>
+            รหัสนักศึกษา
+            <SortIcon active={sortState.key === 'studentId'} direction={sortState.direction} />
+          </th>
+          <th className={styles.sortableHeader} onClick={() => onSort('absences_count')}>
+            จำนวนครั้งที่ขาด
+            <SortIcon active={sortState.key === 'absences_count'} direction={sortState.direction} />
+          </th>
+          <th className={styles.sortableHeader} onClick={() => onSort('absences_percent')}>
+            คิดเป็นร้อยละ (ขาด)
+            <SortIcon active={sortState.key === 'absences_percent'} direction={sortState.direction} />
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -173,6 +202,7 @@ const StudentsAbsentTable: React.FC<{ data: IStudentAbsentRisk[] }> = ({ data })
     </table>
   </div>
 );
+
 const LiveSessionTable: React.FC<{ data: ISessionViewData['liveDataTable'] }> = ({ data }) => (
   <div className={styles.tableContainer}>
     <table className={styles.dataTable}>
@@ -238,6 +268,48 @@ const FacultyDashboardPage = () => {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const contentAreaRef = useRef<HTMLDivElement>(null); 
+  
+  // Sorting State
+  const [lateSort, setLateSort] = useState<{ key: keyof IStudentLateRisk; direction: 'asc' | 'desc' }>({ key: 'lates_count', direction: 'desc' });
+  const [absentSort, setAbsentSort] = useState<{ key: keyof IStudentAbsentRisk; direction: 'asc' | 'desc' }>({ key: 'absences_percent', direction: 'desc' });
+
+  // --- Sorting Logic ---
+  const handleSort = (type: 'late' | 'absent', key: string) => {
+    if (type === 'late') {
+      setLateSort(prev => ({
+        key: key as keyof IStudentLateRisk,
+        direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc',
+      }));
+    } else {
+      setAbsentSort(prev => ({
+        key: key as keyof IStudentAbsentRisk,
+        direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc',
+      }));
+    }
+  };
+
+  const sortData = useCallback(<T extends IStudentLateRisk | IStudentAbsentRisk>(
+    data: T[], 
+    sortState: { key: keyof T; direction: 'asc' | 'desc' }
+  ): T[] => {
+    if (!data || data.length === 0) return [];
+    
+    return [...data].sort((a, b) => {
+      const aValue = a[sortState.key];
+      const bValue = b[sortState.key];
+      
+      let comparison = 0;
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        comparison = aValue - bValue;
+      } 
+      else if (typeof aValue === 'string' && typeof bValue === 'string') {
+        comparison = aValue.localeCompare(bValue, 'th'); 
+      }
+      
+      return sortState.direction === 'asc' ? comparison : -comparison;
+    });
+  }, []);
 
   // --- Fetch Data ---
   useEffect(() => {
@@ -657,11 +729,19 @@ const FacultyDashboardPage = () => {
 
               <div className={styles.chartsGrid}>
                 <ChartContainer title="นักศึกษาที่มาสาย (เรียงตาม % สาย)">
-                  <StudentsLateTable data={semesterData.studentsLate} />
+                  <StudentsLateTable 
+                    data={sortData(semesterData.studentsLate, lateSort)} 
+                    sortState={lateSort}
+                    onSort={(key) => handleSort('late', key)}
+                  />
                 </ChartContainer>
 
                 <ChartContainer title="นักศึกษาที่ขาดเรียน (เรียงตาม % ขาด)">
-                  <StudentsAbsentTable data={semesterData.studentsAbsent} />
+                  <StudentsAbsentTable 
+                    data={sortData(semesterData.studentsAbsent, absentSort)} 
+                    sortState={absentSort}
+                    onSort={(key) => handleSort('absent', key)}
+                  />
                 </ChartContainer>
               </div>
             </>
