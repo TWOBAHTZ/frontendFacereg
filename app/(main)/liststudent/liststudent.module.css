@@ -219,10 +219,10 @@
     border: 1px solid #cbd5e1;
     border-radius: 0.5rem;
     font-size: 1rem;
-    color: #111827; /* gray-900 */
+    color: #111827; 
 }
 .formGroup input[type="text"]::placeholder {
-    color: #9ca3af; /* gray-400 */
+    color: #9ca3af; 
 }
 .formGroup input[type="text"]:focus {
     outline: none;
@@ -370,7 +370,7 @@
     border: 1px solid #cbd5e1;
     border-radius: 0.5rem;
     font-size: 1rem;
-    color: #111827; /* สีดำ */
+    color: #111827; 
     background-color: white;
     appearance: none;
     -webkit-appearance: none;
@@ -379,7 +379,7 @@
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 1.25em 1.25em;
-    padding-right: 2.5rem; /* (เว้นที่ให้ลูกศร) */
+    padding-right: 2.5rem;
 }
 .controlSelect:focus {
     outline: none;
@@ -387,16 +387,14 @@
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
-/* (เพิ่มโค้ดนี้ที่ท้ายไฟล์ liststudent.module.css) */
-
 .studentSubject {
-  font-size: 0.8rem;            /* ขนาดตัวอักษรเล็ก */
+  font-size: 0.8rem;
   font-weight: 500;
-  color: #1d4ed8;               /* สีน้ำเงินเข้ม */
-  background-color: #dbeafe;    /* สีพื้นหลัง (น้ำเงินอ่อน) */
-  padding: 0.15rem 0.6rem;      /* ระยะห่างภายใน */
-  border-radius: 9999px;        /* ทำให้ขอบโค้งมน (badge) */
-  display: inline-block;        /* ทำให้ขนาดพอดีกับข้อความ */
-  align-self: flex-start;       /* จัดให้ชิดซ้าย */
-  margin-top: 0.25rem;          /* เว้นระยะห่างจาก ID */
+  color: #1d4ed8;
+  background-color: #dbeafe;
+  padding: 0.15rem 0.6rem;
+  border-radius: 9999px;
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 0.25rem;
 }

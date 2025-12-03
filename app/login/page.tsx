@@ -45,6 +45,17 @@ const LoginPageContent = () => {
 
   return (
     <div className={styles.container}>
+      <div className={styles.externalLogoWrapper}>
+        <Image 
+          src="/LogoApp.png" 
+          alt="Face Recognition Smart Attendance System" 
+          width={500}
+          height={150}
+          priority 
+          style={{ width: '100%', height: 'auto' }}
+          onError={(e) => e.currentTarget.style.display = 'none'} 
+        />
+      </div>
       <div className={styles.loginBox}>
         <div className={styles.header}>
           <div className={styles.logoWrapper}>
@@ -88,7 +99,6 @@ const LoginPageContent = () => {
   );
 };
 
-// --- (ส่วนหุ้ม MsalProvider) ---
 const LoginPage = () => {
   return (
     <MsalProvider instance={msalInstance}>

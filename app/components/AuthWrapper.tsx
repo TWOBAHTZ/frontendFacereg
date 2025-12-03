@@ -28,7 +28,6 @@ const RedirectToLogin = () => {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <MsalProvider instance={msalInstance}>
-      
       <AuthenticatedTemplate>
         {children}
       </AuthenticatedTemplate>
@@ -36,7 +35,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       <UnauthenticatedTemplate>
         <RedirectToLogin />
       </UnauthenticatedTemplate>
-
     </MsalProvider>
   );
 };

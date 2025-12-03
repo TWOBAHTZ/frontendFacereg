@@ -1,14 +1,11 @@
-// app/authConfig.ts
-
 import { 
   Configuration, 
-  PublicClientApplication,  // <-- เราต้องการตัว Class นี้
+  PublicClientApplication, 
   IPublicClientApplication, 
   AccountInfo, 
   InteractionRequiredAuthError 
 } from "@azure/msal-browser";
 
-// (ID ของคุณ)
 const TENANT_ID = "0ecb7c82-1b84-4b36-adef-2081b5c1125b";
 const CLIENT_ID = "af39ad67-ec03-4cbd-88f3-762dd7a58dfe";
 
@@ -24,20 +21,13 @@ export const msalConfig: Configuration = {
     }
 };
 
-/**
- * ✨ [ใหม่] สร้าง Instance ที่นี่ และ export
- * นี่คือ instance เดียวที่แอปทั้งหมดจะใช้
- */
 export const msalInstance = new PublicClientApplication(msalConfig);
 
-
-// --- (ฟังก์ชันผู้ช่วย - เหมือนเดิม) ---
 export const getAuthToken = async (
   instance: IPublicClientApplication, 
   account: AccountInfo
 ): Promise<string> => {
   
-  // (Scope ที่ถูกต้องของเรา)
   const scopes = ["api://af39ad67-ec03-4cbd-88f3-762dd7a58dfe/access_as_user"]; 
   
   try {

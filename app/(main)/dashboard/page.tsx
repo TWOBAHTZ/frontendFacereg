@@ -4,8 +4,8 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import styles from './dashboard.module.css';
 import { 
   Loader2, Users, BarChart, Clock, PieChart, TrendingUp, Calendar, ChevronDown, 
-  CheckCircle, XCircle, AlertTriangle, Download
-} from 'lucide-react';
+  CheckCircle, XCircle, AlertTriangle, Download, ChevronUp 
+} from 'lucide-react'; 
 
 import { Bar, Line, Pie } from 'react-chartjs-2'; 
 import {
@@ -28,8 +28,7 @@ ChartJS.register(
 
 ChartJS.defaults.color = '#000000'; 
 
-
-// --- Interfaces (เหมือนเดิม) ---
+// --- Interfaces ---
 const BACKEND_URL = 'http://localhost:8000';
 
 interface ISubject {
@@ -100,7 +99,7 @@ interface ISessionViewData {
   }[];
 }
 
-// --- (Components ย่อย StatCard, ChartContainer, Tables เหมือนเดิม) ---
+// --- Sub-Components ---
 const StatCard: React.FC<{ title: string; value: string; icon: React.ReactNode; iconClass: string }> = ({ title, value, icon, iconClass }) => (
   <div className={styles.statCard}>
     <div className={`${styles.statIcon} ${styles[iconClass]}`}>{icon}</div>
@@ -118,15 +117,34 @@ const ChartContainer: React.FC<{ title: string; children: React.ReactNode; class
     </div>
   </div>
 );
-const StudentsLateTable: React.FC<{ data: IStudentLateRisk[] }> = ({ data }) => (
+
+const SortIcon: React.FC<{ active: boolean; direction: 'asc' | 'desc' }> = ({ active, direction }) => (
+    <div className={styles.sortIcon}>
+        {active && direction === 'asc' ? <ChevronUp size={12} /> : null} 
+        {active && direction === 'desc' ? <ChevronDown size={12} /> : null} 
+        {!active && <ChevronDown size={12} style={{ opacity: 0.3 }} />}
+    </div>
+);
+
+
+const StudentsLateTable: React.FC<{ data: IStudentLateRisk[]; sortState: { key: keyof IStudentLateRisk; direction: 'asc' | 'desc' }; onSort: (key: string) => void }> = ({ data, sortState, onSort }) => (
   <div className={styles.tableContainer}>
     <table className={styles.dataTable}>
       <thead>
         <tr>
-          <th>ชื่อ-สกุล</th>
-          <th>รหัสนักศึกษา</th>
-          <th>จำนวนครั้งที่สาย</th>
-          <th>คิดเป็นร้อยละ (สาย)</th>
+          <th className={styles.sortableHeader} onClick={() => onSort('name')}>ชื่อ-สกุล</th>
+          <th className={styles.sortableHeader} onClick={() => onSort('studentId')}>
+            รหัสนักศึกษา
+            <SortIcon active={sortState.key === 'studentId'} direction={sortState.direction} />
+          </th>
+          <th className={styles.sortableHeader} onClick={() => onSort('lates_count')}>
+            จำนวนครั้งที่สาย
+            <SortIcon active={sortState.key === 'lates_count'} direction={sortState.direction} />
+          </th>
+          <th className={styles.sortableHeader} onClick={() => onSort('lates_percent')}>
+            คิดเป็นร้อยละ (สาย)
+            <SortIcon active={sortState.key === 'lates_percent'} direction={sortState.direction} />
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -146,15 +164,25 @@ const StudentsLateTable: React.FC<{ data: IStudentLateRisk[] }> = ({ data }) => 
     </table>
   </div>
 );
-const StudentsAbsentTable: React.FC<{ data: IStudentAbsentRisk[] }> = ({ data }) => (
+
+const StudentsAbsentTable: React.FC<{ data: IStudentAbsentRisk[]; sortState: { key: keyof IStudentAbsentRisk; direction: 'asc' | 'desc' }; onSort: (key: string) => void }> = ({ data, sortState, onSort }) => (
   <div className={styles.tableContainer}>
     <table className={styles.dataTable}>
       <thead>
         <tr>
-          <th>ชื่อ-สกุล</th>
-          <th>รหัสนักศึกษา</th>
-          <th>จำนวนครั้งที่ขาด</th>
-          <th>คิดเป็นร้อยละ (ขาด)</th>
+          <th className={styles.sortableHeader} onClick={() => onSort('name')}>ชื่อ-สกุล</th>
+          <th className={styles.sortableHeader} onClick={() => onSort('studentId')}>
+            รหัสนักศึกษา
+            <SortIcon active={sortState.key === 'studentId'} direction={sortState.direction} />
+          </th>
+          <th className={styles.sortableHeader} onClick={() => onSort('absences_count')}>
+            จำนวนครั้งที่ขาด
+            <SortIcon active={sortState.key === 'absences_count'} direction={sortState.direction} />
+          </th>
+          <th className={styles.sortableHeader} onClick={() => onSort('absences_percent')}>
+            คิดเป็นร้อยละ (ขาด)
+            <SortIcon active={sortState.key === 'absences_percent'} direction={sortState.direction} />
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -174,6 +202,7 @@ const StudentsAbsentTable: React.FC<{ data: IStudentAbsentRisk[] }> = ({ data })
     </table>
   </div>
 );
+
 const LiveSessionTable: React.FC<{ data: ISessionViewData['liveDataTable'] }> = ({ data }) => (
   <div className={styles.tableContainer}>
     <table className={styles.dataTable}>
@@ -211,10 +240,8 @@ const LiveSessionTable: React.FC<{ data: ISessionViewData['liveDataTable'] }> = 
     </table>
   </div>
 );
-// --- (สิ้นสุด Components ย่อย) ---
 
-
-// --- Component: หน้าหลัก Dashboard ---
+// --- Main Page Component ---
 const FacultyDashboardPage = () => {
   const { instance, accounts } = useMsal();
 
@@ -241,8 +268,50 @@ const FacultyDashboardPage = () => {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const contentAreaRef = useRef<HTMLDivElement>(null); 
+  
+  // Sorting State
+  const [lateSort, setLateSort] = useState<{ key: keyof IStudentLateRisk; direction: 'asc' | 'desc' }>({ key: 'lates_count', direction: 'desc' });
+  const [absentSort, setAbsentSort] = useState<{ key: keyof IStudentAbsentRisk; direction: 'asc' | 'desc' }>({ key: 'absences_percent', direction: 'desc' });
 
-  // --- Fetching Data (เหมือนเดิม) ---
+  // --- Sorting Logic ---
+  const handleSort = (type: 'late' | 'absent', key: string) => {
+    if (type === 'late') {
+      setLateSort(prev => ({
+        key: key as keyof IStudentLateRisk,
+        direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc',
+      }));
+    } else {
+      setAbsentSort(prev => ({
+        key: key as keyof IStudentAbsentRisk,
+        direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc',
+      }));
+    }
+  };
+
+  const sortData = useCallback(<T extends IStudentLateRisk | IStudentAbsentRisk>(
+    data: T[], 
+    sortState: { key: keyof T; direction: 'asc' | 'desc' }
+  ): T[] => {
+    if (!data || data.length === 0) return [];
+    
+    return [...data].sort((a, b) => {
+      const aValue = a[sortState.key];
+      const bValue = b[sortState.key];
+      
+      let comparison = 0;
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        comparison = aValue - bValue;
+      } 
+      else if (typeof aValue === 'string' && typeof bValue === 'string') {
+        comparison = aValue.localeCompare(bValue, 'th'); 
+      }
+      
+      return sortState.direction === 'asc' ? comparison : -comparison;
+    });
+  }, []);
+
+  // --- Fetch Data ---
   useEffect(() => {
     const fetchSubjects = async () => {
       if (accounts.length === 0) return;
@@ -311,9 +380,7 @@ const FacultyDashboardPage = () => {
     };
     fetchSessionData();
   }, [selectedSubject, selectedDate, instance, accounts]); 
-
   
-  // (Handler ฟิลเตอร์วันที่หลัก ที่เชื่อมโยงกัน)
   const handleSessionDateChange = (newDate: string) => {
     const validNewDate = newDate || new Date().toISOString().split('T')[0];
     setSelectedDate(validNewDate);
@@ -321,13 +388,11 @@ const FacultyDashboardPage = () => {
     setSemesterStartDate(getDaysAgo(30, validNewDate)); 
   };
   
-
-  // --- ✨ [ฟังก์ชัน Export ที่แก้ไขใหม่] ✨ ---
-  // เราจะรับแค่ 'pdf', 'png', และ 'dashboard_data'
+  // --- Export Functions ---
   const handleExport = async (format: 'pdf' | 'png' | 'dashboard_data') => {
     setShowExportMenu(false);
     
-    // (ส่วน PDF/PNG - เหมือนเดิม)
+    // PDF / PNG Export
     if (format === 'pdf' || format === 'png') {
       if (!contentAreaRef.current) { alert("Error: Cannot find dashboard content."); return; }
       console.log(`Exporting visual as ${format}...`);
@@ -377,8 +442,7 @@ const FacultyDashboardPage = () => {
       return;
     }
     
-    // --- ✨ [ปุ่ม Export ข้อมูลสรุป Dashboard] ---
-    // (นี่คือปุ่มที่ export ข้อมูลตามที่คุณ list มาทั้งหมด)
+    // Excel Data Export
     if (format === 'dashboard_data') {
       if (!semesterData || !sessionData) { 
         alert("Data is not fully loaded. Cannot export dashboard data."); 
@@ -389,8 +453,7 @@ const FacultyDashboardPage = () => {
       try {
         const wb = utils.book_new();
         
-        // --- ส่วน Semester ---
-        // 1. Semester KPIs (พฤติกรรมการเข้าเรียน)
+        // 1. Semester KPIs
         const ws_sem_kpi = utils.json_to_sheet([
           { "Metric": "Total Roster", "Value": semesterData.kpis.totalRoster, "Unit": "คน" },
           { "Metric": "Avg. Attendance", "Value": semesterData.kpis.avgAttendance, "Unit": "%" },
@@ -399,7 +462,7 @@ const FacultyDashboardPage = () => {
         ]);
         utils.book_append_sheet(wb, ws_sem_kpi, "Semester KPIs");
         
-        // 2. Semester Trend (ร้อยละของจำนวนนักศึกษา...)
+        // 2. Semester Trend
         const sem_trend_data = semesterData.trendGraph.labels.map((label, index) => ({
           "Session": label,
           "Present (%)": semesterData.trendGraph.datasets[0].data[index],
@@ -409,22 +472,21 @@ const FacultyDashboardPage = () => {
         const ws_sem_trend = utils.json_to_sheet(sem_trend_data);
         utils.book_append_sheet(wb, ws_sem_trend, "Semester Trend");
         
-        // 3. Students Late (นักศึกษาที่มาสาย)
+        // 3. Students Late
         const ws_sem_late = utils.json_to_sheet(semesterData.studentsLate.map(s => ({
             "Student ID": s.studentId, "Name": s.name,
             "Lates (Count)": s.lates_count, "LATES (%)": s.lates_percent,
         })));
         utils.book_append_sheet(wb, ws_sem_late, "Students Late");
 
-        // 4. Students Absent (นักศึกษาที่ขาดเรียน)
+        // 4. Students Absent
         const ws_sem_absent = utils.json_to_sheet(semesterData.studentsAbsent.map(s => ({
             "Student ID": s.studentId, "Name": s.name,
             "Absences (Count)": s.absences_count, "Absences (%)": s.absences_percent,
         })));
         utils.book_append_sheet(wb, ws_sem_absent, "Students Absent");
 
-        // --- ส่วน Session ---
-        // 5. Session KPIs (สรุปรายคาบ)
+        // 5. Session KPIs
         const ws_ses_kpi = utils.json_to_sheet([
           { "Metric": "Date", "Value": selectedDate },
           { "Metric": "Present", "Value": sessionData.kpis.present },
@@ -434,7 +496,7 @@ const FacultyDashboardPage = () => {
         ]);
         utils.book_append_sheet(wb, ws_ses_kpi, "Session KPIs");
 
-        // 6. Session Summary (สรุปการเข้าเรียน)
+        // 6. Session Summary
         const ses_donut_data = sessionData.summaryDonut.labels.map((label, index) => ({
           "Status": label,
           "Count": sessionData.summaryDonut.datasets[0].data[index]
@@ -442,7 +504,7 @@ const FacultyDashboardPage = () => {
         const ws_ses_donut = utils.json_to_sheet(ses_donut_data);
         utils.book_append_sheet(wb, ws_ses_donut, "Session Summary");
         
-        // 7. Session Arrival (ช่วงเวลาที่เข้าห้องเรียน)
+        // 7. Session Arrival
         const ses_arrival_data = sessionData.arrivalHistogram.labels.map((label, index) => ({
           "Time": label,
           "Student Count": sessionData.arrivalHistogram.datasets[0].data[index] 
@@ -450,7 +512,7 @@ const FacultyDashboardPage = () => {
         const ws_ses_arrival = utils.json_to_sheet(ses_arrival_data);
         utils.book_append_sheet(wb, ws_ses_arrival, "Session Arrival (Count)");
 
-        // 8. Session Live Table (รายชื่อการเข้าเรียน)
+        // 8. Session Live Table
         const ws_ses_live = utils.json_to_sheet(sessionData.liveDataTable);
         utils.book_append_sheet(wb, ws_ses_live, "Session Live Table");
         
@@ -459,12 +521,9 @@ const FacultyDashboardPage = () => {
       } finally { setIsExporting(false); }
       return;
     }
-    
-    // (ลบส่วนของ 'raw_logs' ออกไปจากฟังก์ชันนี้)
   };
 
-
-  // --- ✨ [ส่วน Render ที่แก้ไขเมนู] ---
+  // --- Render ---
   return (
     <div className={styles.pageContainer}>
       
@@ -489,7 +548,6 @@ const FacultyDashboardPage = () => {
                 <button onClick={() => handleExport('png')}>Export Visual as .png</button>
                 <hr className={styles.menuSeparator} />
                 <button onClick={() => handleExport('dashboard_data')}>Export Dashboard Data (.xlsx)</button>
-                {/* (ลบปุ่ม Raw Log ที่สับสนทิ้งไป) */}
               </div>
             )}
           </div>
@@ -513,7 +571,6 @@ const FacultyDashboardPage = () => {
           <label htmlFor="date-picker">
             <Calendar size={16} /> วันที่ (Date):
           </label>
-          {/* (ใช้ Handler ที่เชื่อมโยงฟิลเตอร์) */}
           <input 
             type="date" 
             id="date-picker" 
@@ -525,7 +582,7 @@ const FacultyDashboardPage = () => {
 
       <div ref={contentAreaRef}>
         
-        {/* === 2. สรุปรายคาบ (Session-Specific View) === */}
+        {/* === 2. Session-Specific View === */}
         <section>
           <h2 className={styles.sectionTitle}>สรุปรายคาบ (Session-Specific View)</h2>
           <p className={styles.sectionSubtitle}>ข้อมูลสำหรับวันที่: {new Date(selectedDate).toLocaleDateString('th-TH', { dateStyle: 'long' })}</p>
@@ -605,7 +662,7 @@ const FacultyDashboardPage = () => {
         
         <hr className={styles.sectionSeparator} />
 
-        {/* === 3. พฤติกรรมการเข้าเรียน (Attendance Behavior) === */}
+        {/* === 3. Attendance Behavior === */}
         <section>
           <h2 className={styles.sectionTitle}>พฤติกรรมการเข้าเรียน (Attendance Behavior)</h2>
           
@@ -614,7 +671,6 @@ const FacultyDashboardPage = () => {
               <label htmlFor="semester-start-date">
                 <Calendar size={16} /> เริ่ม (Semester):
               </label>
-              {/* (ฟิลเตอร์นี้จะถูกควบคุมโดย State ที่เชื่อมกับฟิลเตอร์หลัก) */}
               <input type="date" id="semester-start-date" value={semesterStartDate} onChange={(e) => setSemesterStartDate(e.target.value)} />
             </div>
             <div className={styles.filterGroup}>
@@ -673,11 +729,19 @@ const FacultyDashboardPage = () => {
 
               <div className={styles.chartsGrid}>
                 <ChartContainer title="นักศึกษาที่มาสาย (เรียงตาม % สาย)">
-                  <StudentsLateTable data={semesterData.studentsLate} />
+                  <StudentsLateTable 
+                    data={sortData(semesterData.studentsLate, lateSort)} 
+                    sortState={lateSort}
+                    onSort={(key) => handleSort('late', key)}
+                  />
                 </ChartContainer>
 
                 <ChartContainer title="นักศึกษาที่ขาดเรียน (เรียงตาม % ขาด)">
-                  <StudentsAbsentTable data={semesterData.studentsAbsent} />
+                  <StudentsAbsentTable 
+                    data={sortData(semesterData.studentsAbsent, absentSort)} 
+                    sortState={absentSort}
+                    onSort={(key) => handleSort('absent', key)}
+                  />
                 </ChartContainer>
               </div>
             </>

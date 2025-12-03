@@ -25,7 +25,6 @@ const Sidebar = () => {
   return (
     <aside className={styles.sidebarContainer}>
       <div>
-        {/* --- Logo Section --- */}
         <div className={styles.logoContainer}>
           <div className={styles.logoIconWrapper}>
             <ScanFace size={28} />
@@ -33,7 +32,6 @@ const Sidebar = () => {
           <h1 className={styles.logoText}>Face Recognition</h1>
         </div>
 
-        {/* --- Navigation Menu --- */}
         <nav className={styles.nav}>
           {menuItems.map((item) => {
             const isActive = adjustedPathname.startsWith(item.href);
@@ -49,7 +47,6 @@ const Sidebar = () => {
         </nav>
       </div>
 
-      {/* --- Logout Section --- */}
       <div className={styles.logoutSection}>
         <Link href="/login" className={styles.navLink}>
           <div className={`${styles.navItem} ${styles.logoutButton}`}>

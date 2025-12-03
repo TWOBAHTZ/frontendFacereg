@@ -59,10 +59,8 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSu
     }
   };
 
-  // ✨ ฟังก์ชันสำหรับตรวจสอบให้กรอกได้เฉพาะตัวเลข
   const handleSectionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Regex /^\d*$/ หมายถึง อนุญาตเฉพาะตัวเลข (digits) เท่านั้น หรือเป็นค่าว่าง
     if (/^\d*$/.test(value)) {
       setSection(value);
     }
@@ -92,13 +90,12 @@ const AddSubjectModal: React.FC<AddSubjectModalProps> = ({ isOpen, onClose, onSu
           
           <div className={styles.formGroup}>
              <label htmlFor="section">Section (Optional)</label>
-             {/* ✨ อัปเดต input ของ Section */}
              <input 
                id="section"
                type="text" 
-               inputMode="numeric" // ช่วยให้มือถือแสดงแป้นตัวเลข
+               inputMode="numeric"
                value={section} 
-               onChange={handleSectionChange} // ใช้ฟังก์ชันใหม่ที่สร้างขึ้น
+               onChange={handleSectionChange}
                placeholder="e.g. 001" 
                disabled={isSubmitting} 
              />

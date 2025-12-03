@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Trash2, Loader2 } from 'lucide-react';
-// (ใช้ไฟล์ CSS เดียวกับหน้าหลัก)
 import styles from './accesscontrol.module.css';
 
 const BACKEND_URL = 'http://localhost:8000';
@@ -16,7 +15,7 @@ interface Subject {
 interface DeleteSubjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubjectDeleted: () => void; // (Callback เพื่อสั่งให้หน้าหลัก Refresh)
+  onSubjectDeleted: () => void;
 }
 
 export const DeleteSubjectModal: React.FC<DeleteSubjectModalProps> = ({ isOpen, onClose, onSubjectDeleted }) => {
@@ -24,7 +23,6 @@ export const DeleteSubjectModal: React.FC<DeleteSubjectModalProps> = ({ isOpen, 
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState('');
 
-  // (1. เมื่อ Modal เปิด, ให้ดึงรายชื่อวิชาทั้งหมด)
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
@@ -42,9 +40,7 @@ export const DeleteSubjectModal: React.FC<DeleteSubjectModalProps> = ({ isOpen, 
     }
   }, [isOpen]);
 
-  // (2. ฟังก์ชันสำหรับลบ)
   const handleDelete = async (subjectId: number, subjectName: string) => {
-    // (ยืนยันก่อนลบ)
     if (!window.confirm(`Are you sure you want to delete "${subjectName}"?`)) {
       return;
     }
@@ -61,9 +57,8 @@ export const DeleteSubjectModal: React.FC<DeleteSubjectModalProps> = ({ isOpen, 
         throw new Error(data.detail || 'Failed to delete');
       }
       
-      // (3. ถ้าลบสำเร็จ)
-      onSubjectDeleted(); // (สั่งให้หน้าหลัก Refresh Dropdown)
-      setSubjects(prev => prev.filter(s => s.subject_id !== subjectId)); // (ลบออกจากรายการใน Modal นี้)
+      onSubjectDeleted();
+      setSubjects(prev => prev.filter(s => s.subject_id !== subjectId));
       
     } catch (err: any) {
       setError(err.message);
@@ -82,18 +77,15 @@ export const DeleteSubjectModal: React.FC<DeleteSubjectModalProps> = ({ isOpen, 
         <p>Click the trash icon to (soft) delete a subject.</p>
         {error && <p className={styles.errorText}>{error}</p>}
         
-        {/* (4. แสดงรายการวิชาทั้งหมด) */}
         <div className={styles.deleteListContainer}>
           {subjects.length === 0 && <p>No subjects to delete.</p>}
           {subjects.map(subject => (
             <div key={subject.subject_id} className={styles.deleteItem}>
-              {/* (ชื่อวิชา) */}
               <span>
                 {subject.subject_name} 
                 {subject.section ? ` (Sec: ${subject.section})` : ''}
               </span>
               
-              {/* (ปุ่มถังขยะ) */}
               <button 
                 className={styles.deleteIcon}
                 onClick={() => handleDelete(subject.subject_id, subject.subject_name)}

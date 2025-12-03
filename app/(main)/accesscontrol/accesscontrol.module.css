@@ -137,7 +137,7 @@
     margin-bottom: 2rem;
     font-size: 1rem;
     color: #334155;
-    flex-wrap: wrap; /* ✨ [แก้ไข] เพิ่ม wrap เพื่อให้ขึ้นบรรทัดใหม่เมื่อจอแคบ */
+    flex-wrap: wrap; 
 }
 .lateTag {
     border: 1px solid #f87171;
@@ -250,8 +250,7 @@
 
 .tableCellStatus { 
     font-weight: 600; 
-    width: 150px; /* (กำหนดความกว้างคงที่) */
-    /* (ลบ text-align: center ออก) */
+    width: 150px; 
 }
 .attendanceTable th { 
     font-weight: 500; 
@@ -259,7 +258,6 @@
     color: #64748b; 
 }
 
-/* ✨ [แก้ไข] จัดการความกว้างและ Alignment ของ Header */
 .attendanceTable th:nth-child(1) { width: 15%; } /* Time */
 .attendanceTable th:nth-child(2) { width: 30%; } /* Name */
 .attendanceTable th:nth-child(3) { width: 25%; } /* ID */
@@ -278,7 +276,7 @@
 /* --- Snapshot Cell Styles --- */
 .tableCellSnapshot {
     width: 120px;
-    text-align: left; /* ✨ [แก้ไข] */
+    text-align: left; 
     padding: 0.25rem 0.5rem;
 }
 .snapshotImage {
@@ -400,9 +398,10 @@
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    background-color: white;
 }
 .controlInput[type="time"] {
-    width: 160px; /* ✨ [แก้ไข] ขยายความกว้าง */
+    width: 160px; 
     font-size: 1rem;
     font-weight: 500; 
 }
@@ -473,7 +472,7 @@
     color: #b91c1c;
 }
 
-/* ✨ [ใหม่] Student Counter (1/1) */
+/* Student Counter */
 .studentCounter {
     display: flex;
     align-items: center;
@@ -557,10 +556,10 @@
     to { transform: rotate(360deg); }
 }
 
-/* --- [ใหม่] Delete Subject Modal List --- */
+/* --- Delete Subject Modal List --- */
 .deleteListContainer {
     margin-top: 1.5rem;
-    max-height: 300px; /* กำหนดความสูงสูงสุด */
+    max-height: 300px;
     overflow-y: auto;
     border: 1px solid #e2e8f0;
     border-radius: 0.5rem;
@@ -571,7 +570,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 1rem;
-    color: #334155; /* ✨ [สำคัญ] ตั้งค่าสีตัวอักษรให้เข้ม */
+    color: #334155; 
     font-size: 0.9rem;
     border-bottom: 1px solid #f1f5f9;
 }
@@ -583,7 +582,7 @@
 .deleteIcon {
     background: none;
     border: none;
-    color: #ef4444; /* (สีแดง) */
+    color: #ef4444; 
     cursor: pointer;
     padding: 0.25rem;
     border-radius: 0.25rem;
@@ -597,4 +596,73 @@
 .deleteIcon:disabled {
     color: #94a3b8;
     cursor: not-allowed;
+}
+
+/* --- Pagination Styles --- */
+.paginationContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem; 
+    padding: 1rem 0; 
+    border-top: 1px solid #f1f5f9;
+    margin-top: auto; 
+}
+
+.paginationButton {
+    padding: 0.5rem 1rem;
+    border: 1px solid #3b82f6; 
+    border-radius: 0.5rem;
+    background-color: white;
+    color: #3b82f6;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 80px;
+}
+
+.paginationButton:hover:not(:disabled) {
+    background-color: #3b82f6;
+    color: white; 
+}
+
+.paginationButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+    color: #3b82f6; 
+}
+
+.pageNumberButton {
+    padding: 0.5rem 0.8rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    background-color: white;
+    color: #475569;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 40px;
+    text-align: center;
+}
+
+.pageNumberButton:hover:not(:disabled) {
+    background-color: #f1f5f9;
+    border-color: #3b82f6;
+}
+
+.activePage {
+    background-color: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+    font-weight: 700;
+}
+.activePage:hover {
+    background-color: #2563eb;
+}
+
+.pageNumberButton:disabled {
+    cursor: default;
+    background: none;
+    border-color: transparent;
+    color: #94a3b8;
 }

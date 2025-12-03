@@ -1,16 +1,17 @@
 /* --- CSS Variables for consistent theming --- */
 :root {
-  --bg-color: #f8fafc;        /* สีพื้นหลังหลัก (เทาอ่อนมาก) */
-  --card-color: #ffffff;      /* สีพื้นหลังการ์ด (ขาว) */
-  --primary-color: #3b82f6;   /* สีหลัก (ฟ้า) */
-  --text-primary: #1e293b;    /* สีข้อความหลัก (เทาเข้ม) */
-  --text-secondary: #64748b;  /* สีข้อความรอง (เทากลาง) */
-  --input-bg-color: #f1f5f9;  /* สีพื้นหลังปุ่มเมื่อ hover (เทาอ่อน) */
-  --border-color: #d1d5db;    /* สีเส้นขอบ (เทา) */
+  --bg-color: #f8fafc;
+  --card-color: #ffffff;
+  --primary-color: #3b82f6;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --input-bg-color: #f1f5f9;
+  --border-color: #d1d5db;
 }
 
 .container {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
@@ -18,13 +19,21 @@
   padding: 1rem;
 }
 
+.externalLogoWrapper {
+  margin-bottom: 50px;
+  width: 50%;
+  max-width: 380px;
+  display: flex;
+  justify-content: center;
+}
+
 .loginBox {
   width: 100%;
   max-width: 420px;
   background-color: var(--card-color);
-  padding: 3rem 2.5rem; /* ปรับ padding ให้น้อยลงเล็กน้อยด้านข้าง */
+  padding: 3rem 2.5rem; 
   border-radius: 1rem;
-  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05); /* เงาที่นุ่มนวลขึ้น */
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
 }
 
 /* --- Header Section --- */
@@ -35,21 +44,20 @@
 
 .logoWrapper {
   margin-bottom: 1.5rem;
-  /* ใช้ text-align: center ของ .header จัดกึ่งกลาง */
 }
 
 .headerLogo {
   width: auto;      
   height: auto;     
   max-width: 80%;   
-  max-height: 60px; 
+  max-height: 50px; 
   object-fit: contain;
-  margin: 0 auto;   /* ช่วยจัดกึ่งกลางเพิ่มเติม */
-  display: block;   /* ทำให้ margin: auto ทำงานได้ดีขึ้น */
+  margin: 0 auto;   
+  display: block;   
 }
 
 .header h2 {
-  font-size: 1.5rem; /* ลดขนาดลงตามต้องการ (เดิม 1.875rem) */
+  font-size: 1.5rem; 
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 0.5rem;
@@ -85,12 +93,12 @@
 
 .microsoftButton:hover {
   background-color: var(--input-bg-color);
-  border-color: #9ca3af; /* สีขอบเข้มขึ้นเล็กน้อยเมื่อ hover */
+  border-color: #9ca3af; 
 }
 
 .microsoftButton:active {
-  background-color: #e2e8f0; /* สีเข้มขึ้นอีกเมื่อคลิก */
-  transform: scale(0.99);    /* ย่อขนาดเล็กน้อยเมื่อคลิก */
+  background-color: #e2e8f0; 
+  transform: scale(0.99);    
 }
 
 /* --- Footer Section --- */
@@ -110,5 +118,5 @@
 
 .link:hover {
   text-decoration: underline;
-  color: #2563eb; /* สีเข้มขึ้นเมื่อ hover ลิงก์ */
+  color: #2563eb; 
 }
