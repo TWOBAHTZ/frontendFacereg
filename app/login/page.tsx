@@ -18,11 +18,6 @@ const LoginPageContent = () => {
     try {
       const loginResponse = await instance.loginPopup({
         scopes: ["api://af39ad67-ec03-4cbd-88f3-762dd7a58dfe/access_as_user"],
-        
-        // ✨ [นี่คือจุดที่แก้ไข] ✨
-        // บังคับให้ Microsoft แสดงหน้าจอ "เลือกบัญชี"
-        // ผู้ใช้สามารถเลือกบัญชีที่ Login ค้างไว้
-        // หรือกด "Use another account" เพื่อพิมพ์อีเมล/รหัสผ่านใหม่ได้
         prompt: "select_account" 
       });
       

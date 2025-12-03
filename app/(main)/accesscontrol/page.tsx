@@ -3,16 +3,13 @@
 import React, { useEffect, useRef, useState, useCallback, FormEvent } from 'react';
 import { Settings, Download, X, VideoOff, Plus, Loader2, Save, Trash2, Users } from 'lucide-react'; 
 import styles from './accesscontrol.module.css';
-
-// ✨ 1. Import MSAL และ Helper
 import { useMsal } from "@azure/msal-react";
 import { getAuthToken } from "../../authConfig";
 
 const BACKEND_URL = 'http://localhost:8000';
 const WS_BACKEND_URL = 'ws://localhost:8000';
 
-// ✨ [ใหม่] 2. ย้าย Interface มาไว้ข้างบนสุด
-// (เพื่อให้ทุก Component ในไฟล์นี้ใช้ Interface เดียวกัน)
+
 interface Subject {
   subject_id: number;
   subject_name: string;
